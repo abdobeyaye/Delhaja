@@ -81,7 +81,7 @@ require_once 'actions.php';
             <form method="POST" id="loginForm" class="auth-form active" onsubmit="this.querySelector('button').classList.add('loading')">
                 <div class="login-input-group">
                     <i class="fa-solid fa-mobile-screen login-input-icon"></i>
-                    <input type="tel" name="phone" class="login-form-control" placeholder="<?php echo $t['phone_example'] ?? '2XXXXXXX'; ?>" required inputmode="tel" maxlength="8" pattern="[234][0-9]{7}" style="direction: ltr; text-align: <?php echo ($lang=='ar')?'right':'left'; ?>;">
+                    <input type="tel" name="phone" class="login-form-control" placeholder="<?php echo $t['phone_example'] ?? '2XXXXXXX'; ?>" required inputmode="tel" maxlength="8" minlength="8" pattern="[234][0-9]{7}" style="direction: ltr; text-align: <?php echo ($lang=='ar')?'right':'left'; ?>;">
                 </div>
 
                 <div class="login-input-group">
@@ -328,7 +328,7 @@ require_once 'actions.php';
                                     <label class="form-label small fw-bold text-secondary"><?php echo $t['full_name_ph']; ?></label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light"><i class="fas fa-user text-muted"></i></span>
-                                        <input type="text" name="full_name" class="form-control" value="<?php echo e($u['full_name']); ?>" placeholder="<?php echo $t['full_name_ph']; ?>">
+                                        <input type="text" name="full_name" class="form-control" value="<?php echo e($u['full_name']); ?>" placeholder="<?php echo $t['full_name_ph']; ?>" minlength="2">
                                     </div>
                                 </div>
 
@@ -1007,11 +1007,11 @@ require_once 'actions.php';
                             <div class="modal-body">
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['username']; ?></label>
-                                    <input type="text" name="username" class="form-control" required>
+                                    <input type="text" name="username" class="form-control" required minlength="3" maxlength="50">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['password']; ?></label>
-                                    <input type="text" name="password" class="form-control" required>
+                                    <input type="password" name="password" class="form-control" required minlength="4">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['role']; ?></label>
@@ -1188,15 +1188,15 @@ require_once 'actions.php';
                             <div class="modal-body">
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['customer_name']; ?></label>
-                                    <input type="text" name="customer_name" class="form-control" required>
+                                    <input type="text" name="customer_name" class="form-control" required minlength="2" maxlength="100">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['order_details']; ?></label>
-                                    <textarea name="details" class="form-control" rows="3" required></textarea>
+                                    <textarea name="details" class="form-control" rows="3" required maxlength="500"></textarea>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['address']; ?></label>
-                                    <input type="text" name="address" class="form-control" required>
+                                    <input type="text" name="address" class="form-control" required minlength="5" maxlength="200">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['status']; ?></label>
@@ -1242,15 +1242,15 @@ require_once 'actions.php';
                                 <input type="hidden" name="order_id" id="edit_order_id">
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['customer_name']; ?></label>
-                                    <input type="text" name="customer_name" id="edit_order_customer" class="form-control" required>
+                                    <input type="text" name="customer_name" id="edit_order_customer" class="form-control" required minlength="2" maxlength="100">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['order_details']; ?></label>
-                                    <textarea name="details" id="edit_order_details" class="form-control" rows="3" required></textarea>
+                                    <textarea name="details" id="edit_order_details" class="form-control" rows="3" required maxlength="500"></textarea>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['address']; ?></label>
-                                    <input type="text" name="address" id="edit_order_address" class="form-control" required>
+                                    <input type="text" name="address" id="edit_order_address" class="form-control" required minlength="5" maxlength="200">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['status']; ?></label>
@@ -1529,7 +1529,7 @@ require_once 'actions.php';
                                 <label class="form-label small text-muted mb-1">
                                     <i class="fas fa-box me-1"></i><?php echo $t['order_details']; ?>
                                 </label>
-                                <textarea name="details" class="form-control" rows="3" placeholder="<?php echo $t['order_details_placeholder'] ?? 'Describe what you need delivered...'; ?>" required style="border-radius: var(--radius); border: 2px solid var(--gray-200);"></textarea>
+                                <textarea name="details" class="form-control" rows="3" placeholder="<?php echo $t['order_details_placeholder'] ?? 'Describe what you need delivered...'; ?>" required maxlength="500" style="border-radius: var(--radius); border: 2px solid var(--gray-200);"></textarea>
                             </div>
 
                             <div class="mb-3">
