@@ -78,7 +78,7 @@ require_once 'actions.php';
             </div>
 
             <!-- Login Form -->
-            <form method="POST" id="loginForm" class="auth-form active" onsubmit="this.querySelector('button').classList.add('loading')">
+            <form method="POST" accept-charset="UTF-8" id="loginForm" class="auth-form active" onsubmit="this.querySelector('button').classList.add('loading')">
                 <div class="login-input-group">
                     <i class="fa-solid fa-mobile-screen login-input-icon"></i>
                     <input type="tel" name="phone" class="login-form-control" placeholder="<?php echo $t['phone_example'] ?? '2XXXXXXX'; ?>" required inputmode="tel" maxlength="8" minlength="8" pattern="[234][0-9]{7}" style="direction: ltr; text-align: <?php echo ($lang=='ar')?'right':'left'; ?>;">
@@ -95,7 +95,7 @@ require_once 'actions.php';
             </form>
 
             <!-- Register Form -->
-            <form method="POST" id="registerForm" class="auth-form" onsubmit="this.querySelector('button').classList.add('loading')">
+            <form method="POST" accept-charset="UTF-8" id="registerForm" class="auth-form" onsubmit="this.querySelector('button').classList.add('loading')">
                 <div class="login-input-group">
                     <i class="fa-solid fa-user login-input-icon"></i>
                     <input type="text" name="reg_full_name" class="login-form-control" placeholder="<?php echo $t['full_name_ph']; ?>" required minlength="2">
@@ -203,7 +203,7 @@ require_once 'actions.php';
                             </a>
                         </div>
                         <div class="card-body p-4">
-                            <form method="POST" enctype="multipart/form-data" onsubmit="this.querySelector('button[type=submit]').classList.add('loading')">
+                            <form method="POST" accept-charset="UTF-8" enctype="multipart/form-data" onsubmit="this.querySelector('button[type=submit]').classList.add('loading')">
                                 <!-- Profile Header -->
                                 <div class="text-center mb-4">
                                     <label for="avatarInput" class="d-inline-block" style="cursor: pointer;">
@@ -847,7 +847,7 @@ require_once 'actions.php';
                                 <input type="text" id="driverSearchInput" class="form-control" placeholder="<?php echo $t['search'] ?? 'Search'; ?>..." onkeyup="filterDrivers()">
                             </div>
 
-                            <form method="POST">
+                            <form method="POST" accept-charset="UTF-8">
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['driver'] ?? 'Driver'; ?></label>
                                     <select name="driver_id" id="driverSelect" class="form-select" required>
@@ -864,7 +864,7 @@ require_once 'actions.php';
                                 </div>
                                 <div class="mb-4">
                                     <label class="form-label"><?php echo $t['amount'] ?? 'Amount'; ?></label>
-                                    <input type="number" name="amount" class="form-control" placeholder="20" min="1" required>
+                                    <input type="number" name="amount" class="form-control" placeholder="20" min="1" max="999999" required>
                                 </div>
                                 <button name="recharge" class="btn btn-warning w-100 fw-bold">
                                     <i class="fas fa-plus"></i> <?php echo $t['add_points'] ?? 'Add Points'; ?>
@@ -1003,7 +1003,7 @@ require_once 'actions.php';
                             <h5 class="modal-title"><i class="fas fa-user-plus"></i> <?php echo $t['add_user']; ?></h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <form method="POST">
+                        <form method="POST" accept-charset="UTF-8">
                             <div class="modal-body">
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['username']; ?></label>
@@ -1023,7 +1023,7 @@ require_once 'actions.php';
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['points']; ?></label>
-                                    <input type="number" name="points" class="form-control" value="0" min="0">
+                                    <input type="number" name="points" class="form-control" value="0" min="0" max="999999">
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -1043,7 +1043,7 @@ require_once 'actions.php';
                             <h5 class="modal-title"><i class="fas fa-edit"></i> <?php echo $t['edit']; ?> User</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <form method="POST">
+                        <form method="POST" accept-charset="UTF-8">
                             <div class="modal-body">
                                 <input type="hidden" name="user_id" id="edit_user_id">
                                 <div class="mb-3">
@@ -1084,7 +1084,7 @@ require_once 'actions.php';
                             <h5 class="modal-title"><i class="fas fa-coins text-success"></i> <?php echo $t['bulk_recharge'] ?? 'Bulk Recharge Drivers'; ?></h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <form method="POST">
+                        <form method="POST" accept-charset="UTF-8">
                             <div class="modal-body">
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle me-2"></i>
@@ -1093,7 +1093,7 @@ require_once 'actions.php';
                                 <div class="mb-3">
                                     <label class="form-label fw-bold"><?php echo $t['amount_to_add'] ?? 'Amount to Add'; ?></label>
                                     <div class="input-group">
-                                        <input type="number" name="bulk_amount" id="bulkAmount" class="form-control form-control-lg" min="1" required placeholder="<?php echo $t['enter_amount'] ?? 'Enter amount'; ?>">
+                                        <input type="number" name="bulk_amount" id="bulkAmount" class="form-control form-control-lg" min="1" max="999999" required placeholder="<?php echo $t['enter_amount'] ?? 'Enter amount'; ?>">
                                         <span class="input-group-text"><?php echo $t['pts'] ?? 'pts'; ?></span>
                                     </div>
                                 </div>
@@ -1118,7 +1118,7 @@ require_once 'actions.php';
                             <h5 class="modal-title"><i class="fas fa-tag text-success"></i> <span id="promoModalTitle"><?php echo $t['create_promo'] ?? 'Create Promo Code'; ?></span></h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <form method="POST" id="promoCodeForm">
+                        <form method="POST" accept-charset="UTF-8" id="promoCodeForm">
                             <div class="modal-body">
                                 <input type="hidden" name="promo_id" id="promoId">
 
@@ -1138,7 +1138,7 @@ require_once 'actions.php';
 
                                 <div class="mb-3">
                                     <label class="form-label fw-bold"><span id="discountLabel"><?php echo $t['discount_value'] ?? 'Discount Value'; ?></span> *</label>
-                                    <input type="number" name="discount_value" id="discountValue" class="form-control" required min="0" step="0.01" placeholder="e.g. 20">
+                                    <input type="number" name="discount_value" id="discountValue" class="form-control" required min="0" max="100" step="0.01" placeholder="e.g. 20">
                                     <small class="text-muted" id="discountHelp"><?php echo $t['percentage_help'] ?? 'Enter percentage (e.g., 20 for 20% off)'; ?></small>
                                 </div>
 
@@ -1184,7 +1184,7 @@ require_once 'actions.php';
                             <h5 class="modal-title"><i class="fas fa-plus-circle"></i> <?php echo $t['add_order']; ?></h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <form method="POST">
+                        <form method="POST" accept-charset="UTF-8">
                             <div class="modal-body">
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['customer_name']; ?></label>
@@ -1237,7 +1237,7 @@ require_once 'actions.php';
                             <h5 class="modal-title"><i class="fas fa-edit"></i> <?php echo $t['edit_order']; ?></h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <form method="POST">
+                        <form method="POST" accept-charset="UTF-8">
                             <div class="modal-body">
                                 <input type="hidden" name="order_id" id="edit_order_id">
                                 <div class="mb-3">
