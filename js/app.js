@@ -145,16 +145,52 @@ function showAuthForm(form) {
 // ==========================================
 document.querySelectorAll('form').forEach(form => {
     form.addEventListener('submit', function(e) {
-        const inputs = this.querySelectorAll('input[required]');
+        const inputs = this.querySelectorAll('input[required], textarea[required]');
         let valid = true;
 
         inputs.forEach(input => {
+            // Check if empty
             if (!input.value.trim()) {
                 valid = false;
                 input.classList.add('is-invalid');
-            } else {
-                input.classList.remove('is-invalid');
+                return;
             }
+            
+            // Check minlength
+            if (input.minLength && input.value.length < input.minLength) {
+                valid = false;
+                input.classList.add('is-invalid');
+                return;
+            }
+            
+            // Check maxlength (should be enforced by browser, but double-check)
+            if (input.maxLength && input.maxLength > 0 && input.value.length > input.maxLength) {
+                valid = false;
+                input.classList.add('is-invalid');
+                return;
+            }
+            
+            // Check pattern
+            if (input.pattern) {
+                const regex = new RegExp(input.pattern);
+                if (!regex.test(input.value)) {
+                    valid = false;
+                    input.classList.add('is-invalid');
+                    return;
+                }
+            }
+            
+            // Check email
+            if (input.type === 'email') {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(input.value)) {
+                    valid = false;
+                    input.classList.add('is-invalid');
+                    return;
+                }
+            }
+            
+            input.classList.remove('is-invalid');
         });
 
         // Password match check for registration
@@ -172,10 +208,27 @@ document.querySelectorAll('form').forEach(form => {
     });
 });
 
-// Remove invalid class on input
-document.querySelectorAll('input').forEach(input => {
+// Remove invalid class on input and add real-time password validation
+document.querySelectorAll('input, textarea').forEach(input => {
     input.addEventListener('input', function() {
         this.classList.remove('is-invalid');
+        
+        // Real-time password match validation
+        const form = this.closest('form');
+        if (form && this.name === 'reg_confirm_password') {
+            const password = form.querySelector('input[name="reg_password"]');
+            if (password && this.value && password.value !== this.value) {
+                this.classList.add('is-invalid');
+            }
+        }
+        
+        // Real-time password match for profile updates
+        if (form && this.name === 'confirm_new_password') {
+            const newPassword = form.querySelector('input[name="new_password"]');
+            if (newPassword && this.value && newPassword.value !== this.value) {
+                this.classList.add('is-invalid');
+            }
+        }
     });
 });
 
@@ -862,11 +915,15 @@ function _acceptOrderFromBubble(orderId, btn, translations) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     btn.disabled = true;
 
-    // Submit accept request
+    // Submit accept request with proper URL encoding
+    const params = new URLSearchParams();
+    params.append('accept_order', '1');
+    params.append('oid', orderId);
+    
     fetch('actions.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `accept_order=1&oid=${orderId}`
+        body: params.toString()
     })
     .then(response => {
         if (response.redirected || response.ok) {
