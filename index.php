@@ -1694,10 +1694,10 @@ require_once 'actions.php';
 
                             <div class="mb-3">
                                 <label class="form-label small text-muted mb-1">
-                                    <i class="fas fa-map-marked-alt me-1 text-primary"></i><?php echo $t['district'] ?? 'District'; ?> <span class="text-danger">*</span>
+                                    <i class="fas fa-circle me-1 text-success"></i><?php echo $t['pickup_district'] ?? 'Pickup District (From)'; ?> <span class="text-danger">*</span>
                                 </label>
-                                <select name="district_id" class="form-control" required style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
-                                    <option value=""><?php echo $t['select_district'] ?? 'Select District'; ?></option>
+                                <select name="pickup_district_id" id="pickup_district_id" class="form-control" required onchange="calculateDeliveryFee()" style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
+                                    <option value=""><?php echo $t['select_pickup_district'] ?? 'Select Pickup District'; ?></option>
                                     <?php
                                     $districts_query = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
                                     while ($district = $districts_query->fetch()):
@@ -1711,32 +1711,47 @@ require_once 'actions.php';
                                         <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
                                     <?php endwhile; ?>
                                 </select>
-                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['district_required'] ?? 'Please select your district'; ?></small>
+                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['select_from_district'] ?? 'Where should we pick up from?'; ?></small>
                             </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small text-muted mb-1">
+                                    <i class="fas fa-flag-checkered me-1 text-danger"></i><?php echo $t['delivery_district'] ?? 'Delivery District (To)'; ?> <span class="text-danger">*</span>
+                                </label>
+                                <select name="delivery_district_id" id="delivery_district_id" class="form-control" required onchange="calculateDeliveryFee()" style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
+                                    <option value=""><?php echo $t['select_delivery_district'] ?? 'Select Delivery District'; ?></option>
+                                    <?php
+                                    $districts_query2 = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
+                                    while ($district = $districts_query2->fetch()):
+                                        // Show bilingual names
+                                        if ($lang == 'ar'):
+                                            $display_name = $district['name_ar'] . ' - ' . $district['name'];
+                                        else:
+                                            $display_name = $district['name'] . ' - ' . $district['name_ar'];
+                                        endif;
+                                    ?>
+                                        <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
+                                    <?php endwhile; ?>
+                                </select>
+                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['select_to_district'] ?? 'Where should we deliver to?'; ?></small>
+                            </div>
+
+                            <!-- Delivery Fee Display -->
+                            <div id="deliveryFeeDisplay" class="alert alert-success mb-3" style="display:none;">
+                                <i class="fas fa-money-bill-wave me-1"></i>
+                                <strong><?php echo $t['delivery_fee'] ?? 'Delivery Fee'; ?>: <span id="calculatedFee">---</span> MRU</strong>
+                            </div>
+                            <input type="hidden" name="delivery_fee" id="delivery_fee_input" value="0">
 
                             <div class="mb-4">
                                 <label class="form-label small text-muted mb-1">
                                     <i class="fas fa-map-marker-alt me-1 text-danger"></i><?php echo $t['detailed_address'] ?? 'Detailed Address'; ?> <span class="text-danger">*</span>
                                 </label>
                                 <textarea name="detailed_address" class="form-control" rows="2" 
-                                          placeholder="<?php echo $t['detailed_address_placeholder'] ?? 'Enter your detailed address (street, building, landmark...)'; ?>" 
+                                          placeholder="<?php echo $t['detailed_address_placeholder'] ?? 'Street, building, landmark, delivery instructions...'; ?>" 
                                           required minlength="10" maxlength="500" 
                                           style="border-radius: var(--radius); border: 2px solid var(--gray-200);"></textarea>
                                 <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['address_required'] ?? 'Please enter your detailed address (minimum 10 characters)'; ?></small>
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label small text-muted mb-1">
-                                    <i class="fas fa-tag me-1 text-success"></i><?php echo $t['promo_code'] ?? 'Promo Code'; ?> <span class="text-muted">(<?php echo $t['optional'] ?? 'Optional'; ?>)</span>
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" name="promo_code" id="promoCodeInput" class="form-control text-uppercase"
-                                           placeholder="<?php echo $t['enter_promo_code'] ?? 'Enter promo code'; ?>" maxlength="50">
-                                    <button type="button" class="btn btn-outline-success" onclick="validatePromoCode()" id="validatePromoBtn">
-                                        <i class="fas fa-check"></i> <?php echo $t['apply'] ?? 'Apply'; ?>
-                                    </button>
-                                </div>
-                                <small id="promoFeedback" class="text-muted"></small>
                             </div>
 
                             <button type="submit" name="add_order" class="slider-btn-container w-100">

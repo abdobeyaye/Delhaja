@@ -1137,49 +1137,40 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ==========================================
-// PROMO CODE VALIDATION
+// DELIVERY FEE CALCULATION
 // ==========================================
-function validatePromoCode() {
-    const input = document.getElementById('promoCodeInput');
-    const feedback = document.getElementById('promoFeedback');
-    const btn = document.getElementById('validatePromoBtn');
-    const code = input.value.trim().toUpperCase();
-
-    if (!code) {
-        feedback.innerHTML = '';
-        feedback.className = 'text-muted';
-        return;
+function calculateDeliveryFee() {
+    const pickupId = document.getElementById('pickup_district_id')?.value;
+    const deliveryId = document.getElementById('delivery_district_id')?.value;
+    const feeDisplay = document.getElementById('deliveryFeeDisplay');
+    const feeText = document.getElementById('calculatedFee');
+    const feeInput = document.getElementById('delivery_fee_input');
+    
+    if (pickupId && deliveryId) {
+        // Fetch the delivery fee from API
+        fetch(`api.php?action=calculate_fee&pickup=${pickupId}&delivery=${deliveryId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.fee) {
+                    feeText.textContent = data.fee;
+                    feeInput.value = data.fee;
+                    feeDisplay.style.display = 'block';
+                } else {
+                    // Default fee if error
+                    feeText.textContent = '150';
+                    feeInput.value = '150';
+                    feeDisplay.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error calculating fee:', error);
+                // Default fee on error
+                feeText.textContent = '150';
+                feeInput.value = '150';
+                feeDisplay.style.display = 'block';
+            });
+    } else {
+        feeDisplay.style.display = 'none';
+        feeInput.value = '0';
     }
-
-    // Show loading state
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    feedback.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Validating...';
-    feedback.className = 'text-info';
-
-    // Validate promo code via API
-    fetch('api.php?action=validate_promo&code=' + encodeURIComponent(code))
-        .then(response => response.json())
-        .then(data => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check"></i> Apply';
-
-            if (data.success) {
-                feedback.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + data.message;
-                feedback.className = 'text-success fw-bold';
-                input.classList.add('is-valid');
-                input.classList.remove('is-invalid');
-            } else {
-                feedback.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>' + data.message;
-                feedback.className = 'text-danger';
-                input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
-            }
-        })
-        .catch(error => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check"></i> Apply';
-            feedback.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Error validating code';
-            feedback.className = 'text-warning';
-        });
 }
