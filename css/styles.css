@@ -2461,6 +2461,7 @@
             overflow: hidden;
             cursor: pointer;
             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            border: none;
         }
         .slider-btn-container.success { background: var(--success); }
         .slider-btn-container.info { background: #2196F3; }
@@ -2471,6 +2472,7 @@
             font-weight: 700;
             font-size: 0.95rem;
             z-index: 1;
+            pointer-events: none; /* Ensure clicks pass through to the button */
         }
 
         .slider-thumb {
@@ -2486,6 +2488,13 @@
             font-size: 1.2rem;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             transition: 0.3s;
+            pointer-events: none; /* Ensure clicks pass through to the button */
+        }
+        /* Ensure icons and common elements inside slider-thumb allow clicks to pass through */
+        .slider-thumb i,
+        .slider-thumb svg,
+        .slider-thumb span {
+            pointer-events: none;
         }
         [dir="rtl"] .slider-thumb { right: auto; left: 4px; }
         .slider-btn-container:active .slider-thumb {

@@ -187,6 +187,10 @@ try {
     $conn->exec("SET character_set_client=utf8mb4");
     $conn->exec("SET character_set_results=utf8mb4");
 
+    // Set MySQL timezone to match PHP timezone (Africa/Nouakchott = GMT+0)
+    // This ensures timestamps are stored and retrieved consistently
+    $conn->exec("SET time_zone = '+00:00'");
+
     // ==========================================
     // DATABASE SCHEMA v2.0
     // ==========================================

@@ -1777,7 +1777,7 @@ require_once 'actions.php';
                         <?php if($role == 'driver'): ?>
 
                             <?php if($st == 'pending'): ?>
-                            <form method="POST" onsubmit="this.querySelector('.slider-btn-container').classList.add('loading')">
+                            <form method="POST" class="driver-action-form">
                                 <input type="hidden" name="oid" value="<?php echo $row['id']; ?>">
                                 <button type="submit" name="accept_order" class="slider-btn-container w-100" onclick="return confirm('<?php echo $t['confirm_accept']; ?>\n<?php echo $t['cost_per_order']; ?>: <?php echo $points_cost_per_order; ?> <?php echo $t['pts']; ?>')">
                                     <div class="slider-thumb"><i class="fa-solid fa-check"></i></div>
@@ -1787,7 +1787,7 @@ require_once 'actions.php';
 
                             <?php elseif($st == 'accepted' && $row['driver_id'] == $uid): ?>
                             <div class="d-flex gap-2 w-100">
-                                <form method="POST" class="flex-grow-1" onsubmit="this.querySelector('button').disabled=true;">
+                                <form method="POST" class="flex-grow-1 driver-action-form">
                                     <input type="hidden" name="oid" value="<?php echo $row['id']; ?>">
                                     <button type="submit" name="pickup_order" value="1" class="slider-btn-container info w-100">
                                         <div class="slider-thumb"><i class="fa-solid fa-box"></i></div>
@@ -1800,7 +1800,7 @@ require_once 'actions.php';
                             </div>
 
                             <?php elseif($st == 'picked_up' && $row['driver_id'] == $uid): ?>
-                            <form method="POST" class="pin-input-row" onsubmit="this.querySelector('button').disabled=true;">
+                            <form method="POST" class="pin-input-row driver-action-form">
                                 <input type="hidden" name="oid" value="<?php echo $row['id']; ?>">
                                 <input type="text" name="pin" placeholder="<?php echo $t['enter_pin'] ?? 'Enter PIN'; ?>" required pattern="[0-9]{4}" maxlength="4" inputmode="numeric">
                                 <button type="submit" name="finish_job" value="1" class="btn btn-success px-4 py-3 fw-bold" style="border-radius: 12px;">

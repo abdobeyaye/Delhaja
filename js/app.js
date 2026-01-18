@@ -699,6 +699,11 @@ function initRealtimePolling(userRole, translations) {
 // FORM LOADING STATES
 // ==========================================
 
+// Minimum delay (in ms) before disabling submit button after form submission starts.
+// This ensures the browser has time to process the form data before the button is disabled,
+// which prevents form submission cancellation in browsers that check button state during submit.
+const FORM_SUBMIT_BUTTON_DISABLE_DELAY = 100;
+
 // Add loading state to all forms on submit
 document.addEventListener('DOMContentLoaded', function() {
     const forms = document.querySelectorAll('form');
@@ -717,12 +722,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
             if (submitBtn) {
                 submitBtn.classList.add('btn-loading');
-                submitBtn.disabled = true;
 
                 // Store original text
                 if (!submitBtn.dataset.originalText) {
                     submitBtn.dataset.originalText = submitBtn.innerHTML;
                 }
+
+                // Delay disabling the button to allow form submission to complete.
+                // Disabling synchronously can cancel form submission in some browsers
+                // because the submit button's name/value won't be included in form data.
+                setTimeout(function() {
+                    submitBtn.disabled = true;
+                }, FORM_SUBMIT_BUTTON_DISABLE_DELAY);
             }
 
             // Show loading overlay for important forms
