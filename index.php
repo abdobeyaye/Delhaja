@@ -1687,7 +1687,7 @@ require_once 'actions.php';
                             </div>
                             <?php endif; ?>
                             <?php if(($st == 'accepted' || $st == 'picked_up' || $st == 'delivered') && !empty($row['accepted_at'])): ?>
-                            <div class="tag-new" style="background: rgba(13, 110, 253, 0.1); color: #0d6efd;">
+                            <div class="tag-new tag-time">
                                 <i class="fas fa-clock"></i>
                                 <?php echo fmtDate($row['accepted_at']); ?>
                             </div>
@@ -1750,7 +1750,7 @@ require_once 'actions.php';
                             </div>
                             <?php if(!empty($row['driver_phone'])): ?>
                             <div class="mb-2">
-                                <a href="tel:+222<?php echo $row['driver_phone']; ?>" class="btn btn-sm btn-outline-success">
+                                <a href="tel:+222<?php echo e($row['driver_phone']); ?>" class="btn btn-sm btn-outline-success">
                                     <i class="fas fa-phone me-1"></i>+222 <?php echo e($row['driver_phone']); ?>
                                 </a>
                             </div>
