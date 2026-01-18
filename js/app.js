@@ -365,41 +365,6 @@ function _showOrderTracking(order, translations) {
 }
 
 // ==========================================
-// GPS & LOCATION FUNCTIONS
-// ==========================================
-
-// Haversine formula for distance calculation
-function haversineDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-}
-
-// Update driver location (for drivers)
-function updateMyLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-
-                fetch('api.php?action=update_location', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lat, lng })
-                }).catch(() => {});
-            },
-            () => {}
-        );
-    }
-}
-
-// ==========================================
 // NOTIFICATION FUNCTIONS
 // ==========================================
 function showNotification(title, message, type = 'info') {
@@ -461,8 +426,6 @@ function escapeHtml(text) {
 
 // Track displayed order IDs to prevent duplicates
 let displayedOrderIds = new Set();
-let driverLat = null;
-let driverLng = null;
 
 // Play order ring sound
 function playOrderRingSound() {
@@ -493,29 +456,38 @@ function playOrderRingSound() {
     }
 }
 
-// Create order bubble HTML
+// Create order bubble HTML (Zone-based, no distance)
 function createOrderBubble(order, translations) {
     const bubble = document.createElement('div');
     bubble.className = 'order-bubble';
     bubble.id = `order-bubble-${order.id}`;
     bubble.dataset.orderId = order.id;
 
-    const distanceText = order.distance ? `${parseFloat(order.distance).toFixed(1)} ${translations.km || 'km'}` : '---';
+    const priceText = order.delivery_price ? `${order.delivery_price} ${translations.mru || 'MRU'}` : '---';
     const phone = order.client_phone || (translations.no_phone || 'No phone');
+    const pickupZone = order.pickup_zone || '';
+    const dropoffZone = order.dropoff_zone || '';
 
     bubble.innerHTML = `
         <div class="order-bubble-header">
             <div class="new-order-badge">
                 <i class="fas fa-bell"></i>
-                ${translations.new_order_nearby || 'New Order Nearby!'}
+                ${translations.new_order_nearby || 'New Order!'}
             </div>
             <div class="order-bubble-timer"><span class="timer-seconds">10</span>s</div>
         </div>
         <div class="order-bubble-body">
             <div class="order-bubble-distance">
-                <i class="fas fa-route"></i>
-                ${distanceText}
+                <i class="fas fa-money-bill-wave"></i>
+                ${priceText}
             </div>
+            ${pickupZone && dropoffZone ? `
+            <div class="order-bubble-zones mb-2">
+                <span class="badge bg-success">${pickupZone}</span>
+                <i class="fas fa-arrow-right mx-2"></i>
+                <span class="badge bg-danger">${dropoffZone}</span>
+            </div>
+            ` : ''}
             <div class="order-bubble-details">${escapeHtml(order.details)}</div>
             <div class="order-bubble-address">
                 <i class="fas fa-map-marker-alt"></i>
@@ -597,27 +569,9 @@ function removeBubble(orderId) {
     }
 }
 
-// Fetch nearby orders for driver
-function fetchNearbyOrders(translations) {
-    if (!driverLat || !driverLng) {
-        // Get current position first
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    driverLat = pos.coords.latitude;
-                    driverLng = pos.coords.longitude;
-                    doFetchNearbyOrders(translations);
-                },
-                () => {}
-            );
-        }
-        return;
-    }
-    doFetchNearbyOrders(translations);
-}
-
-function doFetchNearbyOrders(translations) {
-    fetch(`api.php?action=get_nearby_orders&lat=${driverLat}&lng=${driverLng}&max_distance=7`)
+// Fetch pending orders for driver (zone-based, no GPS)
+function fetchPendingOrders(translations) {
+    fetch('api.php?action=get_pending_orders')
         .then(response => response.json())
         .then(data => {
             if (data.success && data.orders && data.orders.length > 0) {
@@ -627,232 +581,6 @@ function doFetchNearbyOrders(translations) {
             }
         })
         .catch(() => {});
-}
-
-// ==========================================
-// DRIVER GPS TOGGLE FUNCTIONALITY
-// ==========================================
-let gpsEnabled = false;
-let gpsWatchId = null;
-
-function _toggleDriverGPS(translations) {
-    const btn = document.getElementById('gpsToggleBtn');
-    const toggle = document.getElementById('gpsToggle');
-    const label = document.getElementById('gpsStatusLabel');
-    const detail = document.getElementById('gpsStatusDetail');
-    const accuracyBadge = document.getElementById('gpsAccuracyBadge');
-
-    // New dashboard control panel elements
-    const controlBtn = document.getElementById('gpsControlBtn');
-    const controlIcon = document.getElementById('gpsControlIcon');
-    const controlLabel = document.getElementById('gpsControlLabel');
-    const controlHint = document.getElementById('gpsControlHint');
-    const statusBar = document.getElementById('gpsStatusBar');
-    const statusText = document.getElementById('gpsStatusText');
-
-    if (!navigator.geolocation) {
-        alert(translations.geolocation_not_supported || 'Geolocation is not supported by your browser');
-        return;
-    }
-
-    if (gpsEnabled) {
-        // Disable GPS
-        if (gpsWatchId !== null) {
-            navigator.geolocation.clearWatch(gpsWatchId);
-            gpsWatchId = null;
-        }
-        gpsEnabled = false;
-
-        if (btn) {
-            btn.classList.remove('on', 'loading');
-            btn.classList.add('off');
-        }
-        if (toggle) toggle.classList.remove('active');
-        if (label) {
-            label.classList.remove('on');
-            label.classList.add('off');
-            label.innerHTML = '<i class="fas fa-satellite-dish me-1"></i>' + (translations.gps_disabled || 'GPS Disabled');
-        }
-        if (detail) detail.textContent = translations.gps_driver_note || 'Enable GPS to see nearby orders';
-        if (accuracyBadge) accuracyBadge.style.display = 'none';
-
-        // Update dashboard control panel
-        if (controlIcon) {
-            controlIcon.classList.remove('gps-on', 'gps-loading');
-            controlIcon.classList.add('gps-off');
-        }
-        if (controlLabel) controlLabel.textContent = translations.gps_disabled || 'GPS Off';
-        if (controlHint) controlHint.textContent = translations.tap_to_enable_gps || 'Tap to enable GPS';
-        if (statusBar) statusBar.style.display = 'none';
-        if (controlBtn) controlBtn.classList.remove('active');
-
-        // Reset driver location variables
-        driverLat = null;
-        driverLng = null;
-    } else {
-        // Enable GPS - show loading state
-        if (btn) {
-            btn.classList.remove('off', 'on');
-            btn.classList.add('loading');
-            btn.innerHTML = '<i class="fas fa-spinner"></i>';
-        }
-        if (label) label.innerHTML = '<i class="fas fa-satellite-dish me-1"></i>' + (translations.updating_location || 'Updating location...');
-
-        // Update dashboard control panel - loading state
-        if (controlIcon) {
-            controlIcon.classList.remove('gps-off', 'gps-on');
-            controlIcon.classList.add('gps-loading');
-            controlIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        }
-        if (controlLabel) controlLabel.textContent = translations.updating_location || 'Locating...';
-        if (controlHint) controlHint.textContent = translations.please_wait || 'Please wait...';
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                gpsEnabled = true;
-                driverLat = position.coords.latitude;
-                driverLng = position.coords.longitude;
-                const accuracy = Math.round(position.coords.accuracy);
-
-                if (btn) {
-                    btn.classList.remove('loading');
-                    btn.classList.add('on');
-                    btn.innerHTML = '<i class="fas fa-location-crosshairs"></i>';
-                }
-                if (toggle) toggle.classList.add('active');
-                if (label) {
-                    label.classList.remove('off');
-                    label.classList.add('on');
-                    label.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + (translations.gps_enabled || 'GPS Enabled');
-                }
-                if (detail) detail.textContent = translations.location_updated || 'Location updated';
-                if (accuracyBadge) accuracyBadge.style.display = 'inline-flex';
-                const accuracyValue = document.getElementById('gpsAccuracyValue');
-                if (accuracyValue) accuracyValue.textContent = accuracy;
-
-                // Update dashboard control panel - enabled state
-                if (controlIcon) {
-                    controlIcon.classList.remove('gps-off', 'gps-loading');
-                    controlIcon.classList.add('gps-on');
-                    controlIcon.innerHTML = '<i class="fas fa-location-crosshairs"></i>';
-                }
-                if (controlLabel) controlLabel.textContent = translations.gps_enabled || 'GPS On';
-                if (controlHint) controlHint.textContent = translations.location_active || 'Location active';
-                if (statusBar) statusBar.style.display = 'block';
-                if (statusText) statusText.textContent = (translations.accuracy || 'Accuracy') + ': ' + accuracy + 'm';
-                if (controlBtn) controlBtn.classList.add('active');
-
-                // Update location on server
-                updateMyLocation();
-
-                // Start watching position
-                gpsWatchId = navigator.geolocation.watchPosition(
-                    (pos) => {
-                        driverLat = pos.coords.latitude;
-                        driverLng = pos.coords.longitude;
-                        const acc = Math.round(pos.coords.accuracy);
-                        const accEl = document.getElementById('gpsAccuracyValue');
-                        if (accEl) accEl.textContent = acc;
-                        const statusTextEl = document.getElementById('gpsStatusText');
-                        if (statusTextEl) statusTextEl.textContent = (translations.accuracy || 'Accuracy') + ': ' + acc + 'm';
-                        updateMyLocation();
-                    },
-                    () => {},
-                    { enableHighAccuracy: true, timeout: 30000, maximumAge: 5000 }
-                );
-
-                // Start fetching nearby orders
-                fetchNearbyOrders(translations);
-            },
-            (error) => {
-                if (btn) {
-                    btn.classList.remove('loading');
-                    btn.classList.add('off');
-                    btn.innerHTML = '<i class="fas fa-location-crosshairs"></i>';
-                }
-                if (label) label.innerHTML = '<i class="fas fa-exclamation-triangle me-1 text-warning"></i>' + (translations.location_error || 'Location error');
-
-                // Update dashboard control panel - error state
-                if (controlIcon) {
-                    controlIcon.classList.remove('gps-on', 'gps-loading');
-                    controlIcon.classList.add('gps-off');
-                    controlIcon.innerHTML = '<i class="fas fa-location-crosshairs"></i>';
-                }
-                if (controlLabel) controlLabel.textContent = translations.location_error || 'GPS Error';
-                if (controlHint) controlHint.textContent = translations.tap_to_retry || 'Tap to retry';
-
-                let msg = translations.location_error || 'Error getting location';
-                if (error.code === error.PERMISSION_DENIED) {
-                    msg = translations.location_denied || 'Location access denied. Please enable GPS.';
-                    if (detail) detail.textContent = msg;
-                    if (controlHint) controlHint.textContent = translations.enable_in_settings || 'Enable in settings';
-                }
-                alert(msg);
-            },
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-        );
-    }
-}
-
-// ==========================================
-// GET PICKUP LOCATION FOR CUSTOMER ORDERS
-// ==========================================
-function _getPickupLocation(translations, lang) {
-    if (!navigator.geolocation) {
-        alert(translations.geolocation_not_supported || 'Geolocation is not supported by your browser');
-        return;
-    }
-
-    const btn = document.getElementById('gpsBtn');
-    const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    btn.disabled = true;
-
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-
-            document.getElementById('pickupLat').value = lat;
-            document.getElementById('pickupLng').value = lng;
-
-            // Reverse geocode to get address
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${lang}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.display_name) {
-                        let address = data.display_name.split(', ').slice(0, 3).join(', ');
-                        document.getElementById('pickupAddress').value = address;
-                    } else {
-                        document.getElementById('pickupAddress').value = lat.toFixed(5) + ', ' + lng.toFixed(5);
-                    }
-                    btn.innerHTML = '<i class="fas fa-check"></i>';
-                    btn.classList.remove('btn-success');
-                    btn.classList.add('btn-primary');
-                    setTimeout(() => {
-                        btn.innerHTML = originalHtml;
-                        btn.classList.remove('btn-primary');
-                        btn.classList.add('btn-success');
-                        btn.disabled = false;
-                    }, 2000);
-                })
-                .catch(() => {
-                    document.getElementById('pickupAddress').value = lat.toFixed(5) + ', ' + lng.toFixed(5);
-                    btn.innerHTML = '<i class="fas fa-check"></i>';
-                    btn.disabled = false;
-                });
-        },
-        (error) => {
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-            let msg = translations.location_error || 'Error getting location';
-            if (error.code === error.PERMISSION_DENIED) {
-                msg = translations.location_denied || 'Location access denied. Please enable GPS.';
-            }
-            alert(msg);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
 }
 
 // ==========================================
@@ -881,6 +609,11 @@ function _acceptOrderFromBubble(orderId, btn, translations) {
         btn.disabled = false;
         showNotification(translations.error || 'Error', translations.try_again || 'Please try again', 'warning');
     });
+}
+
+// Accept order from bubble wrapper
+function acceptOrderFromBubble(orderId, btn) {
+    _acceptOrderFromBubble(orderId, btn, window.AppTranslations || {});
 }
 
 // ==========================================
@@ -936,40 +669,13 @@ function initRealtimePolling(userRole, translations) {
 
     // Initial check after 3 seconds
     setTimeout(checkForUpdates, 3000);
-}
 
-// ==========================================
-// DRIVER INITIALIZATION
-// ==========================================
-function initDriverFeatures(translations, hasExistingLocation) {
-    // Update location every minute
-    setInterval(updateMyLocation, 60000);
-    updateMyLocation(); // Initial update
-
-    // Auto-enable GPS if driver has existing location
-    if (hasExistingLocation) {
-        setTimeout(() => {
-            if (!gpsEnabled) {
-                _toggleDriverGPS(translations);
-            }
-        }, 1000);
+    // For drivers, also poll for new orders to show bubbles
+    if (userRole === 'driver') {
+        // Start polling for new orders every 15 seconds
+        fetchPendingOrders(translations);
+        setInterval(() => fetchPendingOrders(translations), 15000);
     }
-
-    // Initialize GPS and start polling for new orders
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            driverLat = pos.coords.latitude;
-            driverLng = pos.coords.longitude;
-
-            // Start polling for new orders every 15 seconds
-            fetchNearbyOrders(translations);
-            setInterval(() => fetchNearbyOrders(translations), 15000);
-        },
-        () => {
-            console.log('GPS not available - order notifications disabled');
-        },
-        { enableHighAccuracy: true }
-    );
 }
 
 // ==========================================
