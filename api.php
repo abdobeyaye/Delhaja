@@ -16,7 +16,19 @@ if (!isset($_SESSION['user'])) {
     exit();
 }
 
-$user = $_SESSION['user'];
+// Refresh user data from database to ensure we have the latest data (especially points)
+$stmt = $conn->prepare("SELECT * FROM users1 WHERE id=?");
+$stmt->execute([$_SESSION['user']['id']]);
+$user = $stmt->fetch();
+
+if (!$user || $user['status'] == 'banned') {
+    echo json_encode(['success' => false, 'error' => 'Session expired or user banned']);
+    exit();
+}
+
+// Update session with fresh data
+$_SESSION['user'] = $user;
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 switch ($action) {
