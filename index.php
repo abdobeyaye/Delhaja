@@ -2214,7 +2214,15 @@ function calculateDeliveryFee() {
                     feeText.textContent = data.fee;
                     feeInput.value = data.fee;
                     feeDisplay.style.display = 'block';
+                } else {
+                    feeDisplay.style.display = 'none';
+                    feeInput.value = '0';
                 }
+            })
+            .catch(err => {
+                console.error('Error calculating delivery fee:', err);
+                feeDisplay.style.display = 'none';
+                feeInput.value = '0';
             });
     } else {
         feeDisplay.style.display = 'none';
