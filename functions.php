@@ -246,6 +246,7 @@ function getDriverStats($conn, $driverId) {
     $stmt = $conn->prepare("SELECT COUNT(*) FROM orders1 WHERE driver_id = ? AND status = 'delivered'");
     $stmt->execute([$driverId]);
     $stats['total_orders'] = $stmt->fetchColumn();
+    // Alias for backward compatibility with index.php
     $stats['total_delivered'] = $stats['total_orders'];
 
     // Completed today
@@ -267,6 +268,7 @@ function getDriverStats($conn, $driverId) {
     $stmt = $conn->prepare("SELECT COALESCE(SUM(points_cost), 0) FROM orders1 WHERE driver_id = ? AND status = 'delivered' AND MONTH(delivered_at) = MONTH(NOW()) AND YEAR(delivered_at) = YEAR(NOW())");
     $stmt->execute([$driverId]);
     $stats['earnings_month'] = $stmt->fetchColumn();
+    // Alias for backward compatibility with index.php
     $stats['this_month'] = $stats['earnings_month'];
 
     // Total earnings (all time)

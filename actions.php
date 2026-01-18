@@ -333,6 +333,7 @@ if (isset($_SESSION['user'])) {
                 $stmt->execute([$customer_name, $details, $address, $pickup_zone, $dropoff_zone, $delivery_price, $status, $driver_id, $otp, $points_cost_per_order]);
                 setFlash('success', $t['success_order_added'] ?? 'Order added successfully');
             } catch (PDOException $e) {
+                error_log("Admin order creation failed: " . $e->getMessage());
                 setFlash('error', $t['err_order_failed'] ?? 'Failed to add order. Please try again.');
             }
             header("Location: index.php");
@@ -526,6 +527,7 @@ if (isset($_SESSION['user'])) {
                     setFlash('success', $t['success_add']);
                 }
             } catch (PDOException $e) {
+                error_log("Customer order creation failed: " . $e->getMessage());
                 setFlash('error', $t['err_order_failed'] ?? 'Failed to create order. Please try again.');
             }
 
