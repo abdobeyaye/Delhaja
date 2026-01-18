@@ -697,8 +697,11 @@ if (isset($_SESSION['user'])) {
                     // Refresh session with updated user data from database
                     $refreshStmt = $conn->prepare("SELECT * FROM users1 WHERE id=?");
                     $refreshStmt->execute([$uid]);
-                    $_SESSION['user'] = $refreshStmt->fetch();
-                    $u = $_SESSION['user'];
+                    $refreshedUser = $refreshStmt->fetch();
+                    if ($refreshedUser) {
+                        $_SESSION['user'] = $refreshedUser;
+                        $u = $_SESSION['user'];
+                    }
 
                     setFlash('success', $t['success_acc']);
                 } else {

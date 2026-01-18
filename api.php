@@ -21,8 +21,15 @@ $stmt = $conn->prepare("SELECT * FROM users1 WHERE id=?");
 $stmt->execute([$_SESSION['user']['id']]);
 $user = $stmt->fetch();
 
-if (!$user || $user['status'] == 'banned') {
-    echo json_encode(['success' => false, 'error' => 'Session expired or user banned']);
+// Check if user was found
+if (!$user) {
+    echo json_encode(['success' => false, 'error' => 'Session expired']);
+    exit();
+}
+
+// Check if user is banned
+if ($user['status'] == 'banned') {
+    echo json_encode(['success' => false, 'error' => 'User banned']);
     exit();
 }
 
