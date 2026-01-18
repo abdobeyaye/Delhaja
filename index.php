@@ -1673,9 +1673,10 @@ require_once 'actions.php';
                         <form method="POST" accept-charset="UTF-8" id="newOrderForm">
                             <div class="mb-3">
                                 <label class="form-label small text-muted mb-1">
-                                    <i class="fas fa-box me-1"></i><?php echo $t['order_details']; ?>
+                                    <i class="fas fa-box me-1"></i><?php echo $t['order_what'] ?? 'What to deliver?'; ?>
                                 </label>
-                                <textarea name="details" class="form-control" rows="3" placeholder="<?php echo $t['order_details_placeholder'] ?? 'Describe what you need delivered...'; ?>" required maxlength="500" style="border-radius: var(--radius); border: 2px solid var(--gray-200);"></textarea>
+                                <textarea name="details" class="form-control" rows="3" placeholder="<?php echo $t['order_details_placeholder'] ?? 'Describe what you need delivered...'; ?>" required minlength="3" maxlength="500" style="border-radius: var(--radius); border: 2px solid var(--gray-200);"></textarea>
+                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['details_required'] ?? 'Minimum 3 characters'; ?></small>
                             </div>
 
                             <div class="mb-3">
@@ -1692,15 +1693,16 @@ require_once 'actions.php';
                                 </div>
                             </div>
 
-                            <div class="mb-3">
+                             <div class="mb-3">
                                 <label class="form-label small text-muted mb-1">
-                                    <i class="fas fa-map-marked-alt me-1 text-primary"></i><?php echo $t['district'] ?? 'District'; ?> <span class="text-danger">*</span>
+                                    <i class="fas fa-map-marker-alt me-1 text-success"></i><?php echo $t['pickup_district'] ?? 'Pickup District'; ?> <span class="text-danger">*</span>
                                 </label>
-                                <select name="district_id" class="form-control" required style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
+                                <select name="pickup_district_id" id="pickup_district_id" class="form-control" required onchange="calculateDeliveryFee()" style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
                                     <option value=""><?php echo $t['select_district'] ?? 'Select District'; ?></option>
                                     <?php
-                                    $districts_query = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
-                                    while ($district = $districts_query->fetch()):
+                                    // Fetch districts once for reuse
+                                    $districts_list = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name")->fetchAll();
+                                    foreach ($districts_list as $district):
                                         // Show bilingual names: "District Name - الاسم العربي" (or reversed for RTL)
                                         if ($lang == 'ar'):
                                             $display_name = $district['name_ar'] . ' - ' . $district['name'];
@@ -1709,9 +1711,44 @@ require_once 'actions.php';
                                         endif;
                                     ?>
                                         <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 </select>
-                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['district_required'] ?? 'Please select your district'; ?></small>
+                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['from'] ?? 'From'; ?> - <?php echo $t['pickup_district_required'] ?? 'Where to pick up from'; ?></small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small text-muted mb-1">
+                                    <i class="fas fa-flag-checkered me-1 text-danger"></i><?php echo $t['delivery_district'] ?? 'Delivery District'; ?> <span class="text-danger">*</span>
+                                </label>
+                                <select name="delivery_district_id" id="delivery_district_id" class="form-control" required onchange="calculateDeliveryFee()" style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
+                                    <option value=""><?php echo $t['select_district'] ?? 'Select District'; ?></option>
+                                    <?php
+                                    // Reuse districts fetched above
+                                    foreach ($districts_list as $district):
+                                        if ($lang == 'ar'):
+                                            $display_name = $district['name_ar'] . ' - ' . $district['name'];
+                                        else:
+                                            $display_name = $district['name'] . ' - ' . $district['name_ar'];
+                                        endif;
+                                    ?>
+                                        <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['to'] ?? 'To'; ?> - <?php echo $t['delivery_district_required'] ?? 'Where to deliver'; ?></small>
+                            </div>
+
+                            <!-- Dynamic Delivery Fee Display -->
+                            <div id="deliveryFeeDisplay" class="alert alert-info mb-3" style="display:none; border-radius: var(--radius);">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <i class="fas fa-coins me-2"></i>
+                                        <strong><?php echo $t['delivery_fee'] ?? 'Delivery Fee'; ?>:</strong>
+                                    </div>
+                                    <div class="h5 mb-0">
+                                        <span id="calculatedFee">---</span> <small>MRU</small>
+                                    </div>
+                                </div>
+                                <small class="text-muted d-block mt-1"><i class="fas fa-info-circle me-1"></i><?php echo $t['fee_info'] ?? 'Fee depends on distance between districts'; ?></small>
                             </div>
 
                             <div class="mb-4">
@@ -1723,20 +1760,6 @@ require_once 'actions.php';
                                           required minlength="10" maxlength="500" 
                                           style="border-radius: var(--radius); border: 2px solid var(--gray-200);"></textarea>
                                 <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['address_required'] ?? 'Please enter your detailed address (minimum 10 characters)'; ?></small>
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label small text-muted mb-1">
-                                    <i class="fas fa-tag me-1 text-success"></i><?php echo $t['promo_code'] ?? 'Promo Code'; ?> <span class="text-muted">(<?php echo $t['optional'] ?? 'Optional'; ?>)</span>
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" name="promo_code" id="promoCodeInput" class="form-control text-uppercase"
-                                           placeholder="<?php echo $t['enter_promo_code'] ?? 'Enter promo code'; ?>" maxlength="50">
-                                    <button type="button" class="btn btn-outline-success" onclick="validatePromoCode()" id="validatePromoBtn">
-                                        <i class="fas fa-check"></i> <?php echo $t['apply'] ?? 'Apply'; ?>
-                                    </button>
-                                </div>
-                                <small id="promoFeedback" class="text-muted"></small>
                             </div>
 
                             <button type="submit" name="add_order" class="slider-btn-container w-100">
@@ -1769,22 +1792,28 @@ require_once 'actions.php';
                     if (count($driver_districts) > 0) {
                         // Driver has selected districts - show orders from those districts
                         $placeholders = implode(',', array_fill(0, count($driver_districts), '?'));
-                        $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                        $sql = "SELECT o.*, 
+                                       pd.name as pickup_district_name, pd.name_ar as pickup_district_name_ar,
+                                       dd.name as delivery_district_name, dd.name_ar as delivery_district_name_ar
                                 FROM orders1 o 
-                                LEFT JOIN districts d ON o.district_id = d.id
+                                LEFT JOIN districts pd ON o.pickup_district_id = pd.id
+                                LEFT JOIN districts dd ON o.delivery_district_id = dd.id
                                 WHERE (o.driver_id = ? AND o.status IN ('accepted', 'picked_up'))
-                                OR (o.status = 'pending' AND o.district_id IN ($placeholders))
+                                OR (o.status = 'pending' AND (o.pickup_district_id IN ($placeholders) OR o.delivery_district_id IN ($placeholders)))
                                 ORDER BY CASE WHEN o.driver_id = ? THEN 0 ELSE 1 END, o.id DESC
                                 LIMIT 50";
                         $stmt = $conn->prepare($sql);
-                        $params = array_merge([$uid], $driver_districts, [$uid]);
+                        $params = array_merge([$uid], $driver_districts, $driver_districts, [$uid]);
                         $stmt->execute($params);
                         $res = $stmt;
                     } else {
                         // Driver has no districts selected - only show their accepted orders
-                        $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                        $sql = "SELECT o.*, 
+                                       pd.name as pickup_district_name, pd.name_ar as pickup_district_name_ar,
+                                       dd.name as delivery_district_name, dd.name_ar as delivery_district_name_ar
                                 FROM orders1 o 
-                                LEFT JOIN districts d ON o.district_id = d.id
+                                LEFT JOIN districts pd ON o.pickup_district_id = pd.id
+                                LEFT JOIN districts dd ON o.delivery_district_id = dd.id
                                 WHERE o.driver_id = ? AND o.status IN ('accepted', 'picked_up') 
                                 ORDER BY o.id DESC LIMIT 50";
                         $stmt = $conn->prepare($sql);
@@ -1792,18 +1821,24 @@ require_once 'actions.php';
                         $res = $stmt;
                     }
                 } elseif($role == 'customer') {
-                    $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                    $sql = "SELECT o.*, 
+                                   pd.name as pickup_district_name, pd.name_ar as pickup_district_name_ar,
+                                   dd.name as delivery_district_name, dd.name_ar as delivery_district_name_ar
                             FROM orders1 o 
-                            LEFT JOIN districts d ON o.district_id = d.id
+                            LEFT JOIN districts pd ON o.pickup_district_id = pd.id
+                            LEFT JOIN districts dd ON o.delivery_district_id = dd.id
                             WHERE o.customer_name = ? OR o.client_id = ? 
                             ORDER BY o.id DESC LIMIT 50";
                     $stmt = $conn->prepare($sql);
                     $stmt->execute([$u['username'], $uid]);
                     $res = $stmt;
                 } else {
-                    $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                    $sql = "SELECT o.*, 
+                                   pd.name as pickup_district_name, pd.name_ar as pickup_district_name_ar,
+                                   dd.name as delivery_district_name, dd.name_ar as delivery_district_name_ar
                             FROM orders1 o 
-                            LEFT JOIN districts d ON o.district_id = d.id
+                            LEFT JOIN districts pd ON o.pickup_district_id = pd.id
+                            LEFT JOIN districts dd ON o.delivery_district_id = dd.id
                             ORDER BY o.id DESC LIMIT 50";
                     $res = $conn->query($sql);
                 }
@@ -1857,17 +1892,15 @@ require_once 'actions.php';
                                 <i class="fas fa-<?php echo getStatusIcon($st); ?>"></i>
                                 <?php echo $t['st_'.$st] ?? ucfirst($st); ?>
                             </div>
-                            <?php if(!empty($row['district_name'])): ?>
-                            <div class="tag-new tag-accepted">
-                                <i class="fas fa-map-marked-alt"></i>
-                                <?php 
-                                echo $lang == 'ar' ? e($row['district_name_ar']) : e($row['district_name']); 
-                                ?>
+                            <?php if(!empty($row['delivery_fee'])): ?>
+                            <div class="tag-new" style="background: #10b981; color: white;">
+                                <i class="fas fa-coins"></i>
+                                <?php echo $row['delivery_fee']; ?> MRU
                             </div>
                             <?php endif; ?>
                         </div>
 
-                        <!-- Route Visual -->
+                        <!-- Route Visual with Dual Districts -->
                         <div class="route-row">
                             <div class="visual-connector">
                                 <div class="dot-circle dot-p"></div>
@@ -1876,21 +1909,50 @@ require_once 'actions.php';
                             </div>
                             <div class="text-info-route">
                                 <div>
-                                    <div class="loc-title"><?php echo e($row['details']); ?></div>
-                                    <div class="loc-sub"><?php echo e($row['customer_name']); ?></div>
+                                    <div class="loc-title"><i class="fas fa-map-marker-alt text-success me-1"></i><?php echo $t['from'] ?? 'From'; ?>: 
+                                        <?php 
+                                        if (!empty($row['pickup_district_name'])) {
+                                            echo $lang == 'ar' ? e($row['pickup_district_name_ar']) : e($row['pickup_district_name']); 
+                                        } else {
+                                            echo '—';
+                                        }
+                                        ?>
+                                    </div>
+                                    <div class="loc-sub"><i class="fas fa-box me-1"></i><?php echo e($row['details']); ?></div>
                                 </div>
                                 <div>
-                                    <div class="loc-title"><i class="fas fa-map-marker-alt text-danger me-1"></i><?php echo e($row['address']); ?></div>
-                                    <?php if($row['client_phone']): ?>
-                                    <div class="loc-sub">
-                                        <a href="tel:+222<?php echo $row['client_phone']; ?>" class="text-primary">
-                                            <i class="fas fa-phone me-1"></i>+222 <?php echo $row['client_phone']; ?>
-                                        </a>
+                                    <div class="loc-title"><i class="fas fa-flag-checkered text-danger me-1"></i><?php echo $t['to'] ?? 'To'; ?>: 
+                                        <?php 
+                                        if (!empty($row['delivery_district_name'])) {
+                                            echo $lang == 'ar' ? e($row['delivery_district_name_ar']) : e($row['delivery_district_name']); 
+                                        } else {
+                                            echo '—';
+                                        }
+                                        ?>
                                     </div>
-                                    <?php endif; ?>
+                                    <div class="loc-sub"><i class="fas fa-map-marker-alt text-danger me-1"></i><?php echo e($row['address']); ?></div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Customer Contact Info -->
+                        <?php if($role == 'driver' && $row['client_phone']): ?>
+                        <div class="alert alert-info py-2 mb-3" style="border-radius: var(--radius);">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="d-block text-muted mb-1"><i class="fas fa-user me-1"></i><?php echo e($row['customer_name']); ?></small>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <a href="tel:+222<?php echo $row['client_phone']; ?>" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-phone"></i>
+                                    </a>
+                                    <a href="https://wa.me/222<?php echo $row['client_phone']; ?>" class="btn btn-sm btn-success" target="_blank">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
 
                         <?php if($role == 'customer' && $st != 'delivered' && $st != 'cancelled'): ?>
                         <!-- PIN Code for Customer -->
@@ -1940,25 +2002,66 @@ require_once 'actions.php';
                         <?php elseif($role == 'customer'): ?>
 
                             <?php if($st == 'pending'): ?>
-                            <a href="?customer_cancel=<?php echo $row['id']; ?>" class="slider-btn-container muted w-100" onclick="return confirm('<?php echo $t['confirm_cancel'] ?? 'Cancel this order?'; ?>')">
+                            <!-- Cancel button for pending orders only -->
+                            <a href="?customer_cancel=<?php echo $row['id']; ?>" class="slider-btn-container muted w-100" onclick="return confirm('<?php echo $t['confirm_cancel_order'] ?? 'Are you sure you want to cancel this order?'; ?>')">
                                 <div class="slider-thumb"><i class="fa-solid fa-times"></i></div>
                                 <div class="slider-text"><?php echo $t['cancel_order'] ?? 'Cancel Order'; ?></div>
                             </a>
-                            <?php elseif($st == 'accepted'): ?>
-                            <div class="d-flex gap-2 w-100">
-                                <div class="slider-btn-container info flex-grow-1" onclick="showOrderTracking(<?php echo htmlspecialchars(json_encode($row)); ?>)" style="cursor:pointer;">
-                                    <div class="slider-thumb"><i class="fa-solid fa-location-dot"></i></div>
-                                    <div class="slider-text"><?php echo $t['track_order'] ?? 'Track'; ?></div>
+                            
+                            <?php elseif($st != 'cancelled' && $st != 'delivered' && $row['driver_id']): ?>
+                            <!-- Driver Info Card - Show after order is accepted -->
+                            <?php
+                            $driver_stmt = $conn->prepare("SELECT * FROM users1 WHERE id = ?");
+                            $driver_stmt->execute([$row['driver_id']]);
+                            $driver = $driver_stmt->fetch();
+                            if ($driver):
+                            ?>
+                            <div class="alert alert-success mb-3" style="border-radius: var(--radius);">
+                                <h6 class="fw-bold mb-2">
+                                    <i class="fas fa-motorcycle me-2"></i><?php echo $t['your_driver'] ?? 'Your Driver'; ?>
+                                </h6>
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="me-3">
+                                        <?php
+                                        $avatar_url = getAvatarUrl($driver);
+                                        if ($avatar_url):
+                                        ?>
+                                        <img src="<?php echo e($avatar_url); ?>" alt="Driver" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+                                        <?php else: ?>
+                                        <div style="width: 50px; height: 50px; border-radius: 50%; background: <?php echo getAvatarColor($driver['role']); ?>; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                            <?php echo getUserInitials($driver); ?>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold"><?php echo e($driver['full_name'] ?: $driver['username']); ?></div>
+                                        <div class="small text-muted">
+                                            <?php echo formatRating($driver['rating'], true); ?>
+                                        </div>
+                                    </div>
                                 </div>
-                                <a href="?customer_cancel=<?php echo $row['id']; ?>" class="btn btn-outline-danger" onclick="return confirm('<?php echo $t['confirm_cancel'] ?? 'Cancel this order?'; ?>')" style="border-radius: 12px; padding: 12px 16px;">
-                                    <i class="fas fa-times"></i>
-                                </a>
+                                <div class="d-flex gap-2 mb-2">
+                                    <a href="tel:+222<?php echo $driver['phone']; ?>" class="btn btn-sm btn-success flex-grow-1">
+                                        <i class="fas fa-phone me-1"></i> <?php echo $t['call_driver'] ?? 'Call'; ?>
+                                    </a>
+                                    <a href="https://wa.me/222<?php echo $driver['phone']; ?>" class="btn btn-sm btn-success flex-grow-1" target="_blank">
+                                        <i class="fab fa-whatsapp me-1"></i> <?php echo $t['whatsapp_driver'] ?? 'WhatsApp'; ?>
+                                    </a>
+                                </div>
+                                <div class="mt-2 p-2" style="background: rgba(255,255,255,0.3); border-radius: 8px;">
+                                    <small class="d-block text-muted mb-1"><strong><?php echo $t['delivery_code'] ?? 'Delivery Code'; ?>:</strong></small>
+                                    <div class="pin-box text-dark"><?php echo $row['delivery_code']; ?></div>
+                                    <small class="text-muted mt-1"><?php echo $t['pin_note'] ?? 'Give this code to driver upon delivery'; ?></small>
+                                </div>
                             </div>
-                            <?php elseif($st == 'picked_up'): ?>
+                            <?php endif; ?>
+                            
+                            <!-- Track order button -->
                             <div class="slider-btn-container info w-100" onclick="showOrderTracking(<?php echo htmlspecialchars(json_encode($row)); ?>)" style="cursor:pointer;">
                                 <div class="slider-thumb"><i class="fa-solid fa-location-dot"></i></div>
                                 <div class="slider-text"><?php echo $t['track_order'] ?? 'Track Order'; ?></div>
                             </div>
+                            
                             <?php elseif($st == 'delivered' && empty($row['rated_by_customer'])): ?>
                             <form method="POST" class="order-actions-row">
                                 <input type="hidden" name="order_id" value="<?php echo $row['id']; ?>">
@@ -2182,6 +2285,37 @@ initDriverFeatures(AppTranslations, AppConfig.hasExistingLocation);
 // Initialize real-time polling
 initRealtimePolling(AppConfig.userRole, AppTranslations);
 <?php endif; ?>
+
+// Calculate delivery fee based on selected districts
+function calculateDeliveryFee() {
+    var pickupDistrict = document.getElementById('pickup_district_id').value;
+    var deliveryDistrict = document.getElementById('delivery_district_id').value;
+    
+    if (pickupDistrict && deliveryDistrict) {
+        // Show loading state
+        document.getElementById('calculatedFee').textContent = '...';
+        document.getElementById('deliveryFeeDisplay').style.display = 'block';
+        
+        // AJAX call to get fee
+        fetch('api.php?action=calculate_fee&pickup=' + pickupDistrict + '&delivery=' + deliveryDistrict)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('calculatedFee').textContent = data.fee;
+                } else {
+                    document.getElementById('calculatedFee').textContent = '---';
+                    console.error('Fee calculation error:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error calculating fee:', error);
+                document.getElementById('calculatedFee').textContent = '---';
+            });
+    } else {
+        // Hide fee display if districts not selected
+        document.getElementById('deliveryFeeDisplay').style.display = 'none';
+    }
+}
 </script>
 </body>
 </html>

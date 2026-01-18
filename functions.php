@@ -703,7 +703,41 @@ $text = [
         'district_activated' => 'تم تفعيل المقاطعة',
         'district_deactivated' => 'تم إيقاف المقاطعة',
         'no_districts' => 'لا توجد مقاطعات',
-        'save_districts' => 'حفظ المقاطعات'
+        'save_districts' => 'حفظ المقاطعات',
+
+        // Delivery Fee & Dual Districts
+        'delivery_fee' => 'رسوم التوصيل',
+        'pickup_district' => 'مقاطعة الاستلام',
+        'delivery_district' => 'مقاطعة التوصيل',
+        'pickup_district_required' => 'يرجى اختيار مقاطعة الاستلام',
+        'delivery_district_required' => 'يرجى اختيار مقاطعة التوصيل',
+        'from' => 'من',
+        'to' => 'إلى',
+        'delivery_price' => 'سعر التوصيل',
+        'calculated_fee' => 'الرسوم المحسوبة',
+        'fee_info' => 'الرسوم تعتمد على المسافة بين المقاطعات',
+        
+        // Cancel Order
+        'cancel_order' => 'إلغاء الطلب',
+        'cannot_cancel' => 'لا يمكن إلغاء هذا الطلب (تم قبوله من سائق)',
+        'order_cancelled' => 'تم إلغاء الطلب بنجاح',
+        'confirm_cancel_order' => 'هل أنت متأكد من إلغاء هذا الطلب؟',
+        
+        // Driver Info for Customers
+        'driver_info' => 'معلومات السائق',
+        'your_driver' => 'سائقك',
+        'delivery_code' => 'كود التسليم',
+        'call_driver' => 'اتصل بالسائق',
+        'whatsapp_driver' => 'واتساب السائق',
+        'driver_contact' => 'تواصل مع السائق',
+        'driver_details' => 'تفاصيل السائق',
+        
+        // Order Details Display
+        'order_what' => 'ماذا تريد توصيله؟',
+        'what_to_deliver' => 'ماذا سيتم توصيله',
+        'details_required' => 'يرجى تقديم تفاصيل الطلب (3 أحرف على الأقل)',
+        'order_notes' => 'ملاحظات الطلب',
+        'delivery_notes' => 'ملاحظات التوصيل'
     ],
 
     'fr' => [
@@ -1081,7 +1115,40 @@ $text = [
         'district_activated' => 'Commune activée',
         'district_deactivated' => 'Commune désactivée',
         'no_districts' => 'Aucune commune',
-        'save_districts' => 'Enregistrer les communes'
+        'save_districts' => 'Enregistrer les communes',
+
+        // Delivery Fee & Dual Districts
+        'delivery_fee' => 'Frais de livraison',
+        'pickup_district' => 'Commune de ramassage',
+        'delivery_district' => 'Commune de livraison',
+        'pickup_district_required' => 'Veuillez sélectionner une commune de ramassage',
+        'delivery_district_required' => 'Veuillez sélectionner une commune de livraison',
+        'from' => 'De',
+        'to' => 'À',
+        'delivery_price' => 'Prix de livraison',
+        'calculated_fee' => 'Frais calculés',
+        'fee_info' => 'Les frais dépendent de la distance entre les communes',
+        
+        // Cancel Order
+        'cancel_order' => 'Annuler la commande',
+        'cannot_cancel' => 'Impossible d\'annuler cette commande (acceptée par un chauffeur)',
+        'order_cancelled' => 'Commande annulée avec succès',
+        'confirm_cancel_order' => 'Êtes-vous sûr de vouloir annuler cette commande?',
+        
+        // Driver Info for Customers
+        'driver_info' => 'Informations du chauffeur',
+        'your_driver' => 'Votre chauffeur',
+        'delivery_code' => 'Code de livraison',
+        'whatsapp_driver' => 'WhatsApp chauffeur',
+        'driver_contact' => 'Contacter le chauffeur',
+        'driver_details' => 'Détails du chauffeur',
+        
+        // Order Details Display
+        'order_what' => 'Que voulez-vous livrer?',
+        'what_to_deliver' => 'Que livrer',
+        'details_required' => 'Veuillez fournir les détails de la commande (minimum 3 caractères)',
+        'order_notes' => 'Notes de commande',
+        'delivery_notes' => 'Notes de livraison'
     ]
 ];
 $t = $text[$lang];
