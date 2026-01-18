@@ -739,9 +739,10 @@ if (isset($_SESSION['user'])) {
         } elseif ($order['status'] != 'accepted') {
             setFlash('error', $t['err_order_not_accepted'] ?? 'Order must be in accepted status to pick up');
         } else {
-            // All checks passed, update the order (conditions already validated above)
-            $stmt = $conn->prepare("UPDATE orders1 SET status='picked_up', picked_at=NOW() WHERE id=?");
-            $stmt->execute([$oid]);
+            // All checks passed, update the order
+            // Include all conditions in WHERE clause for atomicity (prevents race conditions)
+            $stmt = $conn->prepare("UPDATE orders1 SET status='picked_up', picked_at=NOW() WHERE id=? AND driver_id=? AND status='accepted'");
+            $stmt->execute([$oid, $uid]);
 
             if ($stmt->rowCount() > 0) {
                 setFlash('success', $t['package_picked'] ?? 'Package picked up! Enter the PIN code to complete delivery.');
