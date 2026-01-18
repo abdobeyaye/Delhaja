@@ -365,10 +365,13 @@ switch ($action) {
                 $deduct = $conn->prepare("UPDATE users1 SET points = points - ?, total_orders = total_orders + 1 WHERE id=?");
                 $deduct->execute([$points_cost_per_order, $user['id']]);
 
-                // Update session with new points
-                $_SESSION['user']['points'] -= $points_cost_per_order;
-
                 $conn->commit();
+
+                // Refresh session data from database to avoid race conditions
+                $refreshStmt = $conn->prepare("SELECT * FROM users1 WHERE id=?");
+                $refreshStmt->execute([$user['id']]);
+                $_SESSION['user'] = $refreshStmt->fetch();
+
                 echo json_encode(['success' => true, 'message' => $t['success_acc'] ?? 'Order accepted successfully', 'new_points' => $_SESSION['user']['points']]);
             } else {
                 $conn->rollBack();
