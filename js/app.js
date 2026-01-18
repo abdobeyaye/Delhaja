@@ -592,18 +592,33 @@ function _acceptOrderFromBubble(orderId, btn, translations) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     btn.disabled = true;
 
-    // Submit accept request
-    fetch('actions.php', {
+    // Submit accept request via API
+    fetch('api.php?action=accept_order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `accept_order=1&oid=${orderId}`
+        body: `oid=${orderId}`
     })
-    .then(response => {
-        if (response.redirected || response.ok) {
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
             // Success - remove bubble and reload page
             removeBubble(orderId);
-            showNotification(translations.success || 'Success', translations.order_accepted || 'Order accepted!', 'success');
+            showNotification(translations.success || 'Success', data.message || translations.order_accepted || 'Order accepted!', 'success');
+
+            // Update points display if available
+            if (data.new_points !== undefined) {
+                const pointsElement = document.getElementById('currentPoints');
+                const driverPointsElement = document.getElementById('driverPoints');
+                if (pointsElement) pointsElement.textContent = data.new_points;
+                if (driverPointsElement) driverPointsElement.textContent = data.new_points;
+            }
+
             setTimeout(() => location.reload(), 1000);
+        } else {
+            // Error
+            btn.innerHTML = '<i class="fas fa-check me-2"></i>' + (translations.accept || 'Accept');
+            btn.disabled = false;
+            showNotification(translations.error || 'Error', data.error || translations.try_again || 'Please try again', 'warning');
         }
     })
     .catch(() => {

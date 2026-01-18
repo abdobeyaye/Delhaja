@@ -787,8 +787,14 @@ if (isset($_SESSION['user'])) {
                     $conn->prepare("UPDATE users1 SET rating=? WHERE id=?")->execute([$newRating, $ratee_id]);
 
                     setFlash('success', $t['thanks_for_rating'] ?? 'Thank you for your rating!');
+                } else {
+                    setFlash('warning', $t['already_rated'] ?? 'You have already rated this order');
                 }
+            } else {
+                setFlash('error', $t['rating_error'] ?? 'Unable to submit rating. Please try again.');
             }
+        } else {
+            setFlash('error', $t['order_not_found'] ?? 'Order not found or not delivered yet');
         }
         header("Location: index.php");
         exit();

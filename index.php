@@ -1631,13 +1631,14 @@ require_once 'actions.php';
                     $stmt->execute([$uid, $uid]);
                     $res = $stmt;
                 } elseif($role == 'customer') {
-                    $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified
+                    $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified,
+                            (SELECT COUNT(*) FROM ratings r WHERE r.order_id = o.id AND r.rater_id = ?) as has_rated
                             FROM orders1 o
                             LEFT JOIN users1 d ON o.driver_id = d.id
                             WHERE o.customer_name = ? OR o.client_id = ?
                             ORDER BY o.id DESC LIMIT 50";
                     $stmt = $conn->prepare($sql);
-                    $stmt->execute([$u['username'], $uid]);
+                    $stmt->execute([$uid, $u['username'], $uid]);
                     $res = $stmt;
                 } else {
                     $sql = "SELECT * FROM orders1 ORDER BY id DESC LIMIT 50";
@@ -1830,7 +1831,7 @@ require_once 'actions.php';
                                 <div class="slider-thumb"><i class="fa-solid fa-location-dot"></i></div>
                                 <div class="slider-text"><?php echo $t['track_order'] ?? 'Track Order'; ?></div>
                             </div>
-                            <?php elseif($st == 'delivered' && empty($row['rated_by_customer'])): ?>
+                            <?php elseif($st == 'delivered' && empty($row['has_rated'])): ?>
                             <form method="POST" class="order-actions-row">
                                 <input type="hidden" name="order_id" value="<?php echo $row['id']; ?>">
                                 <select name="score" class="form-select" required style="border-radius: 12px;">

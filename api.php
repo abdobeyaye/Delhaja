@@ -308,6 +308,81 @@ switch ($action) {
         }
         break;
 
+    // ==========================================
+    // ACCEPT ORDER (For AJAX bubble acceptance)
+    // ==========================================
+    case 'accept_order':
+        if ($user['role'] !== 'driver') {
+            echo json_encode(['success' => false, 'error' => 'Not a driver']);
+            exit();
+        }
+
+        $oid = (int)($_POST['oid'] ?? 0);
+        if (!$oid) {
+            echo json_encode(['success' => false, 'error' => 'Order ID required']);
+            exit();
+        }
+
+        // Check driver verification by admin
+        if (empty($user['is_verified'])) {
+            echo json_encode(['success' => false, 'error' => $t['driver_not_verified'] ?? 'Your account must be verified by admin before accepting orders']);
+            exit();
+        }
+
+        // Check phone verification
+        if (!isPhoneVerified($user)) {
+            echo json_encode(['success' => false, 'error' => $t['add_phone_first'] ?? 'Please add your phone number first']);
+            exit();
+        }
+
+        // Check if driver has too many active orders
+        $activeOrders = countActiveOrders($conn, $user['id']);
+        if ($activeOrders >= $driver_max_active_orders) {
+            echo json_encode(['success' => false, 'error' => $t['max_orders_reached'] ?? 'You have reached the maximum number of active orders']);
+            exit();
+        }
+
+        // Check points balance
+        if ($user['points'] < $points_cost_per_order) {
+            echo json_encode(['success' => false, 'error' => $t['err_low_bal'] ?? 'Insufficient points']);
+            exit();
+        }
+
+        try {
+            $conn->beginTransaction();
+
+            // Lock the order row for update (race condition prevention)
+            $chk = $conn->prepare("SELECT id, status FROM orders1 WHERE id=? AND status='pending' FOR UPDATE");
+            $chk->execute([$oid]);
+            $order = $chk->fetch();
+
+            if ($order) {
+                // Update order
+                $upd = $conn->prepare("UPDATE orders1 SET status='accepted', driver_id=?, accepted_at=NOW(), points_cost=? WHERE id=?");
+                $upd->execute([$user['id'], $points_cost_per_order, $oid]);
+
+                // Deduct points from driver
+                $deduct = $conn->prepare("UPDATE users1 SET points = points - ?, total_orders = total_orders + 1 WHERE id=?");
+                $deduct->execute([$points_cost_per_order, $user['id']]);
+
+                $conn->commit();
+
+                // Refresh session data from database to avoid race conditions
+                $refreshStmt = $conn->prepare("SELECT * FROM users1 WHERE id=?");
+                $refreshStmt->execute([$user['id']]);
+                $_SESSION['user'] = $refreshStmt->fetch();
+
+                echo json_encode(['success' => true, 'message' => $t['success_acc'] ?? 'Order accepted successfully', 'new_points' => $_SESSION['user']['points']]);
+            } else {
+                $conn->rollBack();
+                echo json_encode(['success' => false, 'error' => $t['err_order_taken'] ?? 'Order already taken by another driver']);
+            }
+        } catch (Exception $e) {
+            $conn->rollBack();
+            echo json_encode(['success' => false, 'error' => $t['err_general'] ?? 'System Error']);
+        }
+        break;
+
     default:
         echo json_encode(['success' => false, 'error' => 'Invalid action']);
 }
