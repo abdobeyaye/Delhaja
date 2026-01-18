@@ -145,10 +145,10 @@ function showAuthForm(form) {
 // ==========================================
 document.querySelectorAll('form').forEach(form => {
     form.addEventListener('submit', function(e) {
-        const inputs = this.querySelectorAll('input[required]');
+        const requiredInputs = this.querySelectorAll('input[required], textarea[required], select[required]');
         let valid = true;
 
-        inputs.forEach(input => {
+        requiredInputs.forEach(input => {
             if (!input.value.trim()) {
                 valid = false;
                 input.classList.add('is-invalid');
@@ -173,10 +173,12 @@ document.querySelectorAll('form').forEach(form => {
 });
 
 // Remove invalid class on input
-document.querySelectorAll('input').forEach(input => {
-    input.addEventListener('input', function() {
+document.querySelectorAll('input, textarea, select').forEach(element => {
+    const removeInvalidClass = function() {
         this.classList.remove('is-invalid');
-    });
+    };
+    element.addEventListener('input', removeInvalidClass);
+    element.addEventListener('change', removeInvalidClass);
 });
 
 // ==========================================

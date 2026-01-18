@@ -441,9 +441,15 @@ if (isset($_SESSION['user'])) {
         $promo_id = null;
 
         if ($promo_code) {
-            $stmt = $conn->prepare("SELECT * FROM promo_codes WHERE code = ? AND is_active = 1");
-            $stmt->execute([$promo_code]);
-            $promo = $stmt->fetch();
+            try {
+                $stmt = $conn->prepare("SELECT * FROM promo_codes WHERE code = ? AND is_active = 1");
+                $stmt->execute([$promo_code]);
+                $promo = $stmt->fetch();
+            } catch (PDOException $e) {
+                // Promo codes table might not exist - continue without promo code
+                $promo = false;
+                $promo_code = null;
+            }
 
             if ($promo) {
                 $now = time();
@@ -463,10 +469,14 @@ if (isset($_SESSION['user'])) {
                 }
 
                 // Check if user already used it
-                $check = $conn->prepare("SELECT id FROM promo_code_uses WHERE promo_code_id = ? AND user_id = ?");
-                $check->execute([$promo['id'], $uid]);
-                if ($check->rowCount() > 0) {
-                    $is_valid = false;
+                try {
+                    $check = $conn->prepare("SELECT id FROM promo_code_uses WHERE promo_code_id = ? AND user_id = ?");
+                    $check->execute([$promo['id'], $uid]);
+                    if ($check->rowCount() > 0) {
+                        $is_valid = false;
+                    }
+                } catch (PDOException $e) {
+                    // Table might not exist - continue without checking
                 }
 
                 if ($is_valid) {
@@ -493,7 +503,11 @@ if (isset($_SESSION['user'])) {
                 $address = $pickup_name . ' → ' . $dropoff_name;
             }
 
+            $order_created = false;
+            $order_id = null;
+
             try {
+                // Try inserting with all columns including promo_code and discount_amount
                 $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, client_phone, pickup_zone, dropoff_zone, delivery_price, status, delivery_code, points_cost, promo_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)");
                 $stmt->execute([
                     $uid,
@@ -511,24 +525,67 @@ if (isset($_SESSION['user'])) {
                 ]);
 
                 $order_id = $conn->lastInsertId();
+                $order_created = true;
+            } catch (PDOException $e) {
+                // Check for unknown column error (SQLSTATE 42S22 or error message contains column reference)
+                $errorCode = $e->getCode();
+                $errorMsg = $e->getMessage();
+                $isColumnError = ($errorCode === '42S22' || $errorCode === 42522 ||
+                                  strpos($errorMsg, 'Unknown column') !== false ||
+                                  strpos($errorMsg, "doesn't have a default value") !== false);
 
+                if ($isColumnError) {
+                    // Try without promo_code and discount_amount columns (for older database schemas)
+                    try {
+                        $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, client_phone, pickup_zone, dropoff_zone, delivery_price, status, delivery_code, points_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)");
+                        $stmt->execute([
+                            $uid,
+                            $u['username'],
+                            $details,
+                            $address,
+                            $client_phone ?: $u['phone'],
+                            $pickup_zone,
+                            $dropoff_zone,
+                            $delivery_price,
+                            $otp,
+                            $points_cost_per_order
+                        ]);
+
+                        $order_id = $conn->lastInsertId();
+                        $order_created = true;
+                        // Clear promo since we couldn't use it
+                        $promo_id = null;
+                    } catch (PDOException $e2) {
+                        error_log("Customer order creation failed (fallback): " . $e2->getMessage());
+                        setFlash('error', ($t['err_order_failed'] ?? 'Failed to create order. Please try again.') . ' [DB_SCHEMA]');
+                    }
+                } else {
+                    error_log("Customer order creation failed: " . $e->getMessage());
+                    setFlash('error', ($t['err_order_failed'] ?? 'Failed to create order. Please try again.') . ' [DB_ERROR]');
+                }
+            }
+
+            // If order was created successfully
+            if ($order_created && $order_id) {
                 // If promo code was used, update usage tracking
                 if ($promo_id) {
-                    // Increment usage count
-                    $conn->prepare("UPDATE promo_codes SET used_count = used_count + 1 WHERE id = ?")
-                        ->execute([$promo_id]);
+                    try {
+                        // Increment usage count
+                        $conn->prepare("UPDATE promo_codes SET used_count = used_count + 1 WHERE id = ?")
+                            ->execute([$promo_id]);
 
-                    // Track user usage
-                    $conn->prepare("INSERT INTO promo_code_uses (promo_code_id, user_id, order_id, discount_amount) VALUES (?, ?, ?, ?)")
-                        ->execute([$promo_id, $uid, $order_id, $discount_amount]);
+                        // Track user usage
+                        $conn->prepare("INSERT INTO promo_code_uses (promo_code_id, user_id, order_id, discount_amount) VALUES (?, ?, ?, ?)")
+                            ->execute([$promo_id, $uid, $order_id, $discount_amount]);
+                    } catch (PDOException $e) {
+                        // Promo tracking failed but order was created - continue
+                        error_log("Promo code tracking failed: " . $e->getMessage());
+                    }
 
                     setFlash('success', ($t['success_add_with_promo'] ?? 'Order created! Discount applied: %s MRU') . ' ' . number_format($discount_amount, 2) . ' MRU');
                 } else {
                     setFlash('success', $t['success_add']);
                 }
-            } catch (PDOException $e) {
-                error_log("Customer order creation failed: " . $e->getMessage());
-                setFlash('error', $t['err_order_failed'] ?? 'Failed to create order. Please try again.');
             }
 
             header("Location: index.php");
