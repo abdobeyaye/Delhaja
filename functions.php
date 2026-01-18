@@ -690,7 +690,8 @@ $text = [
         'mru' => 'أوقية',
         'from_zone' => 'من',
         'to_zone' => 'إلى',
-        'zone_required' => 'يرجى اختيار منطقة الاستلام والتوصيل'
+        'zone_required' => 'يرجى اختيار منطقة الاستلام والتوصيل',
+        'address_placeholder' => 'العنوان التفصيلي (اختياري)'
     ],
 
     'fr' => [
@@ -1055,7 +1056,8 @@ $text = [
         'mru' => 'MRU',
         'from_zone' => 'De',
         'to_zone' => 'À',
-        'zone_required' => 'Veuillez sélectionner les zones de ramassage et de livraison'
+        'zone_required' => 'Veuillez sélectionner les zones de ramassage et de livraison',
+        'address_placeholder' => 'Adresse détaillée (optionnel)'
     ]
 ];
 $t = $text[$lang];
