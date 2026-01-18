@@ -1546,20 +1546,37 @@ require_once 'actions.php';
                                 </div>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="form-label small text-muted mb-1">
+                                    <i class="fas fa-map-marked-alt me-1 text-primary"></i><?php echo $t['district'] ?? 'District'; ?> <span class="text-danger">*</span>
+                                </label>
+                                <select name="district_id" class="form-control" required style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
+                                    <option value=""><?php echo $t['select_district'] ?? 'Select District'; ?></option>
+                                    <?php
+                                    $districts_query = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
+                                    while ($district = $districts_query->fetch()):
+                                        // Show bilingual names: "District Name - الاسم العربي" (or reversed for RTL)
+                                        if ($lang == 'ar'):
+                                            $display_name = $district['name_ar'] . ' - ' . $district['name'];
+                                        else:
+                                            $display_name = $district['name'] . ' - ' . $district['name_ar'];
+                                        endif;
+                                    ?>
+                                        <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
+                                    <?php endwhile; ?>
+                                </select>
+                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['district_required'] ?? 'Please select your district'; ?></small>
+                            </div>
+
                             <div class="mb-4">
                                 <label class="form-label small text-muted mb-1">
-                                    <i class="fas fa-map-marker-alt me-1 text-danger"></i><?php echo $t['pickup_location'] ?? 'Pickup Location'; ?>
+                                    <i class="fas fa-map-marker-alt me-1 text-danger"></i><?php echo $t['detailed_address'] ?? 'Detailed Address'; ?> <span class="text-danger">*</span>
                                 </label>
-                                <div class="input-group">
-                                    <input type="text" name="address" id="pickupAddress" class="form-control"
-                                           placeholder="<?php echo $t['click_gps'] ?? 'Click GPS to set your location'; ?>" readonly>
-                                    <button type="button" class="btn btn-success px-4" onclick="getPickupLocation()" id="gpsBtn" title="<?php echo $t['turn_on_gps'] ?? 'Turn on GPS'; ?>">
-                                        <i class="fas fa-location-crosshairs"></i>
-                                    </button>
-                                </div>
-                                <input type="hidden" name="pickup_lat" id="pickupLat">
-                                <input type="hidden" name="pickup_lng" id="pickupLng">
-                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['gps_required'] ?? 'GPS location is required for drivers to find you'; ?></small>
+                                <textarea name="detailed_address" class="form-control" rows="2" 
+                                          placeholder="<?php echo $t['detailed_address_placeholder'] ?? 'Enter your detailed address (street, building, landmark...)'; ?>" 
+                                          required minlength="10" maxlength="500" 
+                                          style="border-radius: var(--radius); border: 2px solid var(--gray-200);"></textarea>
+                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['address_required'] ?? 'Please enter your detailed address (minimum 10 characters)'; ?></small>
                             </div>
 
                             <div class="mb-4">

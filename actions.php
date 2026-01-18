@@ -371,8 +371,11 @@ if (isset($_SESSION['user'])) {
     if (isset($_POST['add_order']) && $u['role'] == 'customer') {
         // Get form data
         $details = mb_convert_encoding(trim($_POST['details']), 'UTF-8', 'UTF-8');
-        $address = mb_convert_encoding(trim($_POST['address'] ?? $u['address'] ?? ''), 'UTF-8', 'UTF-8');
         $client_phone = preg_replace('/[^0-9]/', '', $_POST['client_phone'] ?? '');
+        
+        // District-based location
+        $district_id = !empty($_POST['district_id']) ? (int)$_POST['district_id'] : null;
+        $detailed_address = mb_convert_encoding(trim($_POST['detailed_address'] ?? ''), 'UTF-8', 'UTF-8');
 
         // Validate order details
         if (empty($details) || strlen($details) < 3) {
@@ -381,20 +384,25 @@ if (isset($_SESSION['user'])) {
             exit();
         }
 
-        // GPS pickup coordinates
-        $pickup_lat = !empty($_POST['pickup_lat']) ? floatval($_POST['pickup_lat']) : null;
-        $pickup_lng = !empty($_POST['pickup_lng']) ? floatval($_POST['pickup_lng']) : null;
-
-        // Validate GPS location is provided
-        if (!$pickup_lat || !$pickup_lng) {
-            setFlash('error', $t['gps_required'] ?? 'Please set your GPS location for pickup');
+        // Validate district selection
+        if (!$district_id) {
+            setFlash('error', $t['district_required'] ?? 'Please select a district');
             header("Location: index.php");
             exit();
         }
 
-        // Validate GPS coordinates are within valid ranges
-        if ($pickup_lat < -90 || $pickup_lat > 90 || $pickup_lng < -180 || $pickup_lng > 180) {
-            setFlash('error', $t['invalid_gps'] ?? 'Invalid GPS coordinates. Please try again.');
+        // Verify district exists and is active
+        $stmt = $conn->prepare("SELECT id FROM districts WHERE id = ? AND is_active = 1");
+        $stmt->execute([$district_id]);
+        if (!$stmt->fetch()) {
+            setFlash('error', $t['district_required'] ?? 'Please select a valid district');
+            header("Location: index.php");
+            exit();
+        }
+
+        // Validate detailed address
+        if (empty($detailed_address) || strlen($detailed_address) < 10) {
+            setFlash('error', $t['address_required'] ?? 'Please enter your detailed address (minimum 10 characters)');
             header("Location: index.php");
             exit();
         }
@@ -476,15 +484,15 @@ if (isset($_SESSION['user'])) {
         if ($details) {
             $otp = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
 
-            $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, client_phone, pickup_lat, pickup_lng, status, delivery_code, points_cost, promo_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, detailed_address, client_phone, district_id, status, delivery_code, points_cost, promo_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)");
             $stmt->execute([
                 $uid,
                 $u['username'],
                 $details,
-                $address ?: 'GPS Location',
+                $detailed_address, // Use detailed address as the main address
+                $detailed_address, // Also store in detailed_address field
                 $client_phone ?: $u['phone'],
-                $pickup_lat,
-                $pickup_lng,
+                $district_id,
                 $otp,
                 $points_cost_per_order,
                 $promo_code,

@@ -253,6 +253,76 @@ try {
         // Already has the correct enum - continue
     }
 
+    // ==========================================
+    // DISTRICT-BASED SYSTEM (v2.1)
+    // ==========================================
+    
+    // Create Districts Table
+    $conn->exec("CREATE TABLE IF NOT EXISTS districts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        name_ar VARCHAR(100) NOT NULL,
+        is_active TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_active (is_active)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // Pre-populate Nouakchott districts if table is empty
+    $districtCount = $conn->query("SELECT COUNT(*) FROM districts")->fetchColumn();
+    if ($districtCount == 0) {
+        $districts = [
+            ['Tevragh Zeina', 'تفرغ زينة'],
+            ['Ksar', 'لكصر'],
+            ['Dar Naïm', 'دار النعيم'],
+            ['Toujounine', 'توجنين'],
+            ['Arafat', 'عرفات'],
+            ['Riyad', 'الرياض'],
+            ['El Mina', 'الميناء'],
+            ['Sebkha', 'سبخة'],
+            ['Teyarett', 'تيارت'],
+            ['Capital / Centre-ville', 'العاصمة']
+        ];
+        
+        $stmt = $conn->prepare("INSERT INTO districts (name, name_ar, is_active) VALUES (?, ?, 1)");
+        foreach ($districts as $district) {
+            $stmt->execute($district);
+        }
+    }
+
+    // Create Driver-District Relationship Table
+    $conn->exec("CREATE TABLE IF NOT EXISTS driver_districts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        driver_id INT NOT NULL,
+        district_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_driver_district (driver_id, district_id),
+        INDEX idx_driver (driver_id),
+        INDEX idx_district (district_id),
+        FOREIGN KEY (driver_id) REFERENCES users1(id) ON DELETE CASCADE,
+        FOREIGN KEY (district_id) REFERENCES districts(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // Add district_id column to orders1 table
+    try {
+        $check = $conn->query("SHOW COLUMNS FROM orders1 LIKE 'district_id'")->rowCount();
+        if ($check == 0) {
+            $conn->exec("ALTER TABLE orders1 ADD COLUMN district_id INT DEFAULT NULL AFTER client_phone, ADD INDEX idx_district (district_id)");
+        }
+    } catch (Exception $e) {
+        // Column might already exist
+    }
+
+    // Add detailed_address column to orders1 table
+    try {
+        $check = $conn->query("SHOW COLUMNS FROM orders1 LIKE 'detailed_address'")->rowCount();
+        if ($check == 0) {
+            $conn->exec("ALTER TABLE orders1 ADD COLUMN detailed_address VARCHAR(500) DEFAULT NULL AFTER address");
+        }
+    } catch (Exception $e) {
+        // Column might already exist
+    }
+
     // Create uploads directory if not exists
     if (!is_dir($uploads_dir)) {
         mkdir($uploads_dir, 0755, true);

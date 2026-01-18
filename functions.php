@@ -679,7 +679,31 @@ $text = [
         'accept' => 'قبول',
         'decline' => 'رفض',
         'no_phone' => 'لا يوجد هاتف',
-        'update_order' => 'تحديث الطلب'
+        'update_order' => 'تحديث الطلب',
+
+        // Districts
+        'select_district' => 'اختر المقاطعة',
+        'district' => 'المقاطعة',
+        'detailed_address' => 'العنوان التفصيلي',
+        'detailed_address_placeholder' => 'أدخل عنوانك بالتفصيل (الشارع، المبنى، معلم قريب...)',
+        'district_required' => 'يرجى اختيار المقاطعة',
+        'address_required' => 'يرجى إدخال عنوانك التفصيلي (10 أحرف على الأقل)',
+        'manage_districts' => 'إدارة المقاطعات',
+        'add_district' => 'إضافة مقاطعة',
+        'edit_district' => 'تعديل مقاطعة',
+        'district_name' => 'اسم المقاطعة (فرنسي)',
+        'district_name_ar' => 'اسم المقاطعة (عربي)',
+        'my_districts' => 'مقاطعات عملي',
+        'select_districts' => 'اختر المقاطعات التي تعمل فيها',
+        'no_districts_selected' => 'يرجى اختيار مقاطعة واحدة على الأقل لاستقبال الطلبات',
+        'districts' => 'المقاطعات',
+        'district_saved' => 'تم حفظ المقاطعة بنجاح',
+        'district_deleted' => 'تم حذف المقاطعة',
+        'cannot_delete_district' => 'لا يمكن حذف المقاطعة (لها طلبات أو سائقين)',
+        'district_activated' => 'تم تفعيل المقاطعة',
+        'district_deactivated' => 'تم إيقاف المقاطعة',
+        'no_districts' => 'لا توجد مقاطعات',
+        'save_districts' => 'حفظ المقاطعات'
     ],
 
     'fr' => [
@@ -1033,7 +1057,31 @@ $text = [
         'accept' => 'Accepter',
         'decline' => 'Refuser',
         'no_phone' => 'Pas de téléphone',
-        'update_order' => 'Mettre à jour'
+        'update_order' => 'Mettre à jour',
+
+        // Districts
+        'select_district' => 'Sélectionner la commune',
+        'district' => 'Commune',
+        'detailed_address' => 'Adresse détaillée',
+        'detailed_address_placeholder' => 'Entrez votre adresse détaillée (rue, immeuble, repère...)',
+        'district_required' => 'Veuillez sélectionner une commune',
+        'address_required' => 'Veuillez entrer votre adresse détaillée (minimum 10 caractères)',
+        'manage_districts' => 'Gérer les communes',
+        'add_district' => 'Ajouter une commune',
+        'edit_district' => 'Modifier la commune',
+        'district_name' => 'Nom de la commune (Français)',
+        'district_name_ar' => 'Nom de la commune (Arabe)',
+        'my_districts' => 'Mes communes de travail',
+        'select_districts' => 'Sélectionnez les communes dans lesquelles vous opérez',
+        'no_districts_selected' => 'Veuillez sélectionner au moins une commune pour recevoir des commandes',
+        'districts' => 'Communes',
+        'district_saved' => 'Commune enregistrée avec succès',
+        'district_deleted' => 'Commune supprimée',
+        'cannot_delete_district' => 'Impossible de supprimer la commune (commandes ou chauffeurs assignés)',
+        'district_activated' => 'Commune activée',
+        'district_deactivated' => 'Commune désactivée',
+        'no_districts' => 'Aucune commune',
+        'save_districts' => 'Enregistrer les communes'
     ]
 ];
 $t = $text[$lang];
