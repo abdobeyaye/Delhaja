@@ -770,9 +770,6 @@ if (isset($_SESSION['user'])) {
             exit();
         }
 
-        // Pad PIN with leading zeros if needed
-        $pin = str_pad($pin, 4, '0', STR_PAD_LEFT);
-
         $chk = $conn->prepare("SELECT delivery_code, points_cost, status FROM orders1 WHERE id=? AND driver_id=?");
         $chk->execute([$oid, $uid]);
         $order = $chk->fetch();
