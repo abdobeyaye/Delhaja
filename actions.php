@@ -68,25 +68,6 @@ if (isset($_SESSION['user'])) {
             }
         }
 
-        // Handle driver districts (if driver role)
-        if ($u['role'] == 'driver' && isset($_POST['districts'])) {
-            $selected_districts = $_POST['districts'];
-            
-            // Delete existing district assignments
-            $conn->prepare("DELETE FROM driver_districts WHERE driver_id = ?")->execute([$uid]);
-            
-            // Insert new district assignments
-            if (!empty($selected_districts) && is_array($selected_districts)) {
-                $stmt = $conn->prepare("INSERT INTO driver_districts (driver_id, district_id) VALUES (?, ?)");
-                foreach ($selected_districts as $district_id) {
-                    $district_id = (int)$district_id;
-                    if ($district_id > 0) {
-                        $stmt->execute([$uid, $district_id]);
-                    }
-                }
-            }
-        }
-
         // Refresh session with updated user data
         $stmt = $conn->prepare("SELECT * FROM users1 WHERE id=?");
         $stmt->execute([$uid]);
@@ -210,6 +191,86 @@ if (isset($_SESSION['user'])) {
             exit();
         }
 
+        // Save Promo Code (Create/Update)
+        if (isset($_POST['save_promo_code'])) {
+            $promo_id = !empty($_POST['promo_id']) ? (int)$_POST['promo_id'] : null;
+            $code = strtoupper(trim($_POST['promo_code']));
+            $discount_type = $_POST['discount_type'];
+            $discount_value = floatval($_POST['discount_value']);
+            $max_uses = !empty($_POST['max_uses']) ? (int)$_POST['max_uses'] : null;
+            $valid_from = !empty($_POST['valid_from']) ? $_POST['valid_from'] : null;
+            $valid_until = !empty($_POST['valid_until']) ? $_POST['valid_until'] : null;
+            $is_active = isset($_POST['is_active']) ? 1 : 0;
+
+            // Validate
+            if (empty($code) || !preg_match('/^[A-Z0-9]+$/', $code)) {
+                setFlash('error', $t['invalid_promo_code'] ?? 'Invalid promo code. Use uppercase letters and numbers only.');
+                header("Location: index.php#promo-codes");
+                exit();
+            }
+
+            if ($discount_value <= 0) {
+                setFlash('error', $t['invalid_discount'] ?? 'Discount value must be greater than 0.');
+                header("Location: index.php#promo-codes");
+                exit();
+            }
+
+            if ($discount_type == 'percentage' && $discount_value > 100) {
+                setFlash('error', $t['invalid_percentage'] ?? 'Percentage cannot exceed 100%.');
+                header("Location: index.php#promo-codes");
+                exit();
+            }
+
+            // Check if code already exists (for different promo)
+            $check = $conn->prepare("SELECT id FROM promo_codes WHERE code=? AND id!=?");
+            $check->execute([$code, $promo_id ?? 0]);
+            if ($check->rowCount() > 0) {
+                setFlash('error', $t['promo_code_exists'] ?? 'This promo code already exists.');
+                header("Location: index.php#promo-codes");
+                exit();
+            }
+
+            if ($promo_id) {
+                // Update existing
+                $stmt = $conn->prepare("UPDATE promo_codes SET code=?, discount_type=?, discount_value=?, max_uses=?, valid_from=?, valid_until=?, is_active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?");
+                $stmt->execute([$code, $discount_type, $discount_value, $max_uses, $valid_from, $valid_until, $is_active, $promo_id]);
+                setFlash('success', $t['promo_updated'] ?? 'Promo code updated successfully!');
+            } else {
+                // Create new
+                $stmt = $conn->prepare("INSERT INTO promo_codes (code, discount_type, discount_value, max_uses, valid_from, valid_until, is_active, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$code, $discount_type, $discount_value, $max_uses, $valid_from, $valid_until, $is_active, $uid]);
+                setFlash('success', $t['promo_created'] ?? 'Promo code created successfully!');
+            }
+
+            header("Location: index.php#promo-codes");
+            exit();
+        }
+
+        // Toggle Promo Code Active Status
+        if (isset($_GET['toggle_promo'])) {
+            $promo_id = (int)$_GET['toggle_promo'];
+            $stmt = $conn->prepare("SELECT is_active FROM promo_codes WHERE id=?");
+            $stmt->execute([$promo_id]);
+            $promo = $stmt->fetch();
+
+            if ($promo) {
+                $new_status = $promo['is_active'] ? 0 : 1;
+                $conn->prepare("UPDATE promo_codes SET is_active=? WHERE id=?")->execute([$new_status, $promo_id]);
+                setFlash('success', $new_status ? ($t['promo_activated'] ?? 'Promo code activated!') : ($t['promo_deactivated'] ?? 'Promo code deactivated!'));
+            }
+            header("Location: index.php#promo-codes");
+            exit();
+        }
+
+        // Delete Promo Code
+        if (isset($_GET['delete_promo'])) {
+            $promo_id = (int)$_GET['delete_promo'];
+            $conn->prepare("DELETE FROM promo_codes WHERE id=?")->execute([$promo_id]);
+            setFlash('success', $t['promo_deleted'] ?? 'Promo code deleted successfully!');
+            header("Location: index.php#promo-codes");
+            exit();
+        }
+
         // Recharge Points
         if (isset($_POST['recharge'])) {
             $amt = (int)$_POST['amount'];
@@ -302,80 +363,6 @@ if (isset($_SESSION['user'])) {
             header("Location: index.php");
             exit();
         }
-
-        // ==========================================
-        // DISTRICT MANAGEMENT
-        // ==========================================
-        
-        // Save District (Create/Update)
-        if (isset($_POST['save_district'])) {
-            $district_id = !empty($_POST['district_id']) ? (int)$_POST['district_id'] : null;
-            $name = trim($_POST['district_name']);
-            $name_ar = trim($_POST['district_name_ar']);
-            $is_active = isset($_POST['is_active']) ? 1 : 0;
-
-            // Validate
-            if (empty($name) || empty($name_ar)) {
-                setFlash('error', $t['district_required'] ?? 'Please enter district names');
-                header("Location: index.php#districts");
-                exit();
-            }
-
-            if ($district_id) {
-                // Update existing
-                $stmt = $conn->prepare("UPDATE districts SET name=?, name_ar=?, is_active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?");
-                $stmt->execute([$name, $name_ar, $is_active, $district_id]);
-                setFlash('success', $t['district_saved'] ?? 'District updated successfully!');
-            } else {
-                // Create new
-                $stmt = $conn->prepare("INSERT INTO districts (name, name_ar, is_active) VALUES (?, ?, ?)");
-                $stmt->execute([$name, $name_ar, $is_active]);
-                setFlash('success', $t['district_saved'] ?? 'District created successfully!');
-            }
-
-            header("Location: index.php#districts");
-            exit();
-        }
-
-        // Toggle District Active Status
-        if (isset($_GET['toggle_district'])) {
-            $district_id = (int)$_GET['toggle_district'];
-            $stmt = $conn->prepare("SELECT is_active FROM districts WHERE id=?");
-            $stmt->execute([$district_id]);
-            $district = $stmt->fetch();
-
-            if ($district) {
-                $new_status = $district['is_active'] ? 0 : 1;
-                $conn->prepare("UPDATE districts SET is_active=? WHERE id=?")->execute([$new_status, $district_id]);
-                setFlash('success', $new_status ? ($t['district_activated'] ?? 'District activated!') : ($t['district_deactivated'] ?? 'District deactivated!'));
-            }
-            header("Location: index.php#districts");
-            exit();
-        }
-
-        // Delete District
-        if (isset($_GET['delete_district'])) {
-            $district_id = (int)$_GET['delete_district'];
-            
-            // Check if district has orders
-            $orders_check = $conn->prepare("SELECT COUNT(*) FROM orders1 WHERE district_id = ?");
-            $orders_check->execute([$district_id]);
-            $orders_count = $orders_check->fetchColumn();
-            
-            // Check if district has drivers
-            $drivers_check = $conn->prepare("SELECT COUNT(*) FROM driver_districts WHERE district_id = ?");
-            $drivers_check->execute([$district_id]);
-            $drivers_count = $drivers_check->fetchColumn();
-            
-            if ($orders_count > 0 || $drivers_count > 0) {
-                setFlash('error', $t['cannot_delete_district'] ?? 'Cannot delete district (has orders or assigned drivers)');
-            } else {
-                $conn->prepare("DELETE FROM districts WHERE id=?")->execute([$district_id]);
-                setFlash('success', $t['district_deleted'] ?? 'District deleted successfully!');
-            }
-            header("Location: index.php#districts");
-            exit();
-        }
     }
 
     // ==========================================
@@ -384,12 +371,8 @@ if (isset($_SESSION['user'])) {
     if (isset($_POST['add_order']) && $u['role'] == 'customer') {
         // Get form data
         $details = mb_convert_encoding(trim($_POST['details']), 'UTF-8', 'UTF-8');
+        $address = mb_convert_encoding(trim($_POST['address'] ?? $u['address'] ?? ''), 'UTF-8', 'UTF-8');
         $client_phone = preg_replace('/[^0-9]/', '', $_POST['client_phone'] ?? '');
-        
-        // District-based location - NEW: Dual districts (pickup and delivery)
-        $pickup_district_id = !empty($_POST['pickup_district_id']) ? (int)$_POST['pickup_district_id'] : null;
-        $delivery_district_id = !empty($_POST['delivery_district_id']) ? (int)$_POST['delivery_district_id'] : null;
-        $detailed_address = mb_convert_encoding(trim($_POST['detailed_address'] ?? ''), 'UTF-8', 'UTF-8');
 
         // Validate order details
         if (empty($details) || strlen($details) < 3) {
@@ -398,40 +381,20 @@ if (isset($_SESSION['user'])) {
             exit();
         }
 
-        // Validate pickup district selection
-        if (!$pickup_district_id) {
-            setFlash('error', $t['pickup_district_required'] ?? 'Please select a pickup district');
+        // GPS pickup coordinates
+        $pickup_lat = !empty($_POST['pickup_lat']) ? floatval($_POST['pickup_lat']) : null;
+        $pickup_lng = !empty($_POST['pickup_lng']) ? floatval($_POST['pickup_lng']) : null;
+
+        // Validate GPS location is provided
+        if (!$pickup_lat || !$pickup_lng) {
+            setFlash('error', $t['gps_required'] ?? 'Please set your GPS location for pickup');
             header("Location: index.php");
             exit();
         }
 
-        // Validate delivery district selection
-        if (!$delivery_district_id) {
-            setFlash('error', $t['delivery_district_required'] ?? 'Please select a delivery district');
-            header("Location: index.php");
-            exit();
-        }
-
-        // Verify both districts exist and are active
-        $stmt = $conn->prepare("SELECT id, zone FROM districts WHERE id IN (?, ?) AND is_active = 1");
-        $stmt->execute([$pickup_district_id, $delivery_district_id]);
-        $districts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-        
-        if (count($districts) != 2) {
-            setFlash('error', $t['district_required'] ?? 'Please select valid districts');
-            header("Location: index.php");
-            exit();
-        }
-
-        // Calculate delivery fee based on zone difference
-        $pickup_zone = $districts[$pickup_district_id];
-        $delivery_zone = $districts[$delivery_district_id];
-        $delivery_fee = calculateDeliveryFee($pickup_zone, $delivery_zone);
-
-
-        // Validate detailed address
-        if (empty($detailed_address) || strlen($detailed_address) < 10) {
-            setFlash('error', $t['address_required'] ?? 'Please enter your detailed address (minimum 10 characters)');
+        // Validate GPS coordinates are within valid ranges
+        if ($pickup_lat < -90 || $pickup_lat > 90 || $pickup_lng < -180 || $pickup_lng > 180) {
+            setFlash('error', $t['invalid_gps'] ?? 'Invalid GPS coordinates. Please try again.');
             header("Location: index.php");
             exit();
         }
@@ -459,45 +422,117 @@ if (isset($_SESSION['user'])) {
             exit();
         }
 
+        // Validate and process promo code if provided
+        $promo_code = !empty($_POST['promo_code']) ? strtoupper(trim($_POST['promo_code'])) : null;
+        $discount_amount = 0;
+        $promo_id = null;
+
+        if ($promo_code) {
+            $stmt = $conn->prepare("SELECT * FROM promo_codes WHERE code = ? AND is_active = 1");
+            $stmt->execute([$promo_code]);
+            $promo = $stmt->fetch();
+
+            if ($promo) {
+                $now = time();
+                $is_valid = true;
+
+                // Check expiry
+                if ($promo['valid_from'] && strtotime($promo['valid_from']) > $now) {
+                    $is_valid = false;
+                }
+                if ($promo['valid_until'] && strtotime($promo['valid_until']) < $now) {
+                    $is_valid = false;
+                }
+
+                // Check max uses
+                if ($promo['max_uses'] && $promo['used_count'] >= $promo['max_uses']) {
+                    $is_valid = false;
+                }
+
+                // Check if user already used it
+                $check = $conn->prepare("SELECT id FROM promo_code_uses WHERE promo_code_id = ? AND user_id = ?");
+                $check->execute([$promo['id'], $uid]);
+                if ($check->rowCount() > 0) {
+                    $is_valid = false;
+                }
+
+                if ($is_valid) {
+                    // Calculate discount (we'll assume base order cost for percentage calculation)
+                    // For fixed, just use the value
+                    if ($promo['discount_type'] == 'fixed') {
+                        $discount_amount = $promo['discount_value'];
+                    } else {
+                        // For percentage, calculate based on points_cost_per_order or fixed base price
+                        // Assuming 1 point = 1 MRU for simplicity
+                        $base_price = $points_cost_per_order; // or use a fixed value
+                        $discount_amount = ($base_price * $promo['discount_value']) / 100;
+                    }
+
+                    $promo_id = $promo['id'];
+                }
+            }
+        }
+
         if ($details) {
             $otp = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
 
-            $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, detailed_address, client_phone, pickup_district_id, delivery_district_id, delivery_fee, status, delivery_code, points_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, client_phone, pickup_lat, pickup_lng, status, delivery_code, points_cost, promo_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)");
             $stmt->execute([
                 $uid,
                 $u['username'],
                 $details,
-                $detailed_address, // Use detailed address as the main address
-                $detailed_address, // Also store in detailed_address field
+                $address ?: 'GPS Location',
                 $client_phone ?: $u['phone'],
-                $pickup_district_id,
-                $delivery_district_id,
-                $delivery_fee,
+                $pickup_lat,
+                $pickup_lng,
                 $otp,
-                $points_cost_per_order
+                $points_cost_per_order,
+                $promo_code,
+                $discount_amount
             ]);
 
-            setFlash('success', $t['success_add'] ?? 'Order created successfully!');
+            $order_id = $conn->lastInsertId();
+
+            // If promo code was used, update usage tracking
+            if ($promo_id) {
+                // Increment usage count
+                $conn->prepare("UPDATE promo_codes SET used_count = used_count + 1 WHERE id = ?")
+                    ->execute([$promo_id]);
+
+                // Track user usage
+                $conn->prepare("INSERT INTO promo_code_uses (promo_code_id, user_id, order_id, discount_amount) VALUES (?, ?, ?, ?)")
+                    ->execute([$promo_id, $uid, $order_id, $discount_amount]);
+
+                setFlash('success', ($t['success_add_with_promo'] ?? 'Order created! Discount applied: %s MRU') . ' ' . number_format($discount_amount, 2) . ' MRU');
+            } else {
+                setFlash('success', $t['success_add']);
+            }
+
             header("Location: index.php");
             exit();
         }
     }
 
-    // Customer Cancel Order (pending orders only)
+    // Customer Cancel Order (pending or accepted - before pickup)
     if (isset($_GET['customer_cancel']) && $u['role'] == 'customer') {
         $order_id = (int)$_GET['customer_cancel'];
 
-        // Only allow cancellation of pending orders (not accepted by driver yet)
-        $stmt = $conn->prepare("SELECT id, status, driver_id FROM orders1 WHERE id=? AND (client_id=? OR customer_name=?) AND status = 'pending'");
+        // Allow cancellation of pending or accepted orders (before pickup)
+        $stmt = $conn->prepare("SELECT id, status, driver_id, points_cost FROM orders1 WHERE id=? AND (client_id=? OR customer_name=?) AND status IN ('pending', 'accepted')");
         $stmt->execute([$order_id, $uid, $u['username']]);
         $order = $stmt->fetch();
 
         if ($order) {
+            // If order was accepted, refund points to driver
+            if ($order['status'] == 'accepted' && $order['driver_id'] && $order['points_cost']) {
+                $conn->prepare("UPDATE users1 SET points = points + ? WHERE id=?")
+                     ->execute([$order['points_cost'], $order['driver_id']]);
+            }
             $conn->prepare("UPDATE orders1 SET status='cancelled', cancelled_at=NOW(), cancel_reason='Cancelled by customer' WHERE id=?")
                  ->execute([$order_id]);
-            setFlash('success', $t['order_cancelled'] ?? 'Order cancelled successfully');
+            setFlash('success', $t['success_order_cancelled'] ?? 'Order cancelled');
         } else {
-            setFlash('error', $t['cannot_cancel'] ?? 'Cannot cancel this order (already accepted by driver or not found)');
+            setFlash('error', $t['err_cannot_cancel'] ?? 'Cannot cancel this order (already picked up)');
         }
         header("Location: index.php");
         exit();
