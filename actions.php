@@ -422,6 +422,8 @@ if (isset($_SESSION['user'])) {
             exit();
         }
 
+        // Re-prepare statement for second check
+        $stmt = $conn->prepare("SELECT id FROM districts WHERE id = ? AND is_active = 1");
         $stmt->execute([$delivery_district_id]);
         if (!$stmt->fetch()) {
             setFlash('error', $t['district_required'] ?? 'Please select valid delivery district');

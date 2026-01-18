@@ -1534,6 +1534,12 @@ require_once 'actions.php';
                                 </div>
                             </div>
 
+                            <?php
+                            // Fetch districts once and cache for reuse
+                            $districts_query = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
+                            $districts_list = $districts_query->fetchAll(PDO::FETCH_ASSOC);
+                            ?>
+
                             <div class="mb-3">
                                 <label class="form-label small text-muted mb-1">
                                     <i class="fas fa-map-marked-alt me-1 text-success"></i><?php echo $t['pickup_district'] ?? 'Pickup District'; ?> <span class="text-danger">*</span>
@@ -1541,8 +1547,7 @@ require_once 'actions.php';
                                 <select name="pickup_district_id" id="pickup_district_id" class="form-control" required onchange="calculateDeliveryFee()" style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
                                     <option value=""><?php echo $t['select_pickup_district'] ?? 'Select Pickup District'; ?></option>
                                     <?php
-                                    $districts_query = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
-                                    while ($district = $districts_query->fetch()):
+                                    foreach ($districts_list as $district):
                                         // Show bilingual names: "District Name - الاسم العربي" (or reversed for RTL)
                                         if ($lang == 'ar'):
                                             $display_name = $district['name_ar'] . ' - ' . $district['name'];
@@ -1551,7 +1556,7 @@ require_once 'actions.php';
                                         endif;
                                     ?>
                                         <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 </select>
                                 <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['pickup_district_required'] ?? 'Please select pickup district'; ?></small>
                             </div>
@@ -1563,8 +1568,7 @@ require_once 'actions.php';
                                 <select name="delivery_district_id" id="delivery_district_id" class="form-control" required onchange="calculateDeliveryFee()" style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
                                     <option value=""><?php echo $t['select_delivery_district'] ?? 'Select Delivery District'; ?></option>
                                     <?php
-                                    $districts_query = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
-                                    while ($district = $districts_query->fetch()):
+                                    foreach ($districts_list as $district):
                                         // Show bilingual names: "District Name - الاسم العربي" (or reversed for RTL)
                                         if ($lang == 'ar'):
                                             $display_name = $district['name_ar'] . ' - ' . $district['name'];
@@ -1573,7 +1577,7 @@ require_once 'actions.php';
                                         endif;
                                     ?>
                                         <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 </select>
                                 <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['delivery_district_required'] ?? 'Please select delivery district'; ?></small>
                             </div>
@@ -2049,7 +2053,13 @@ function calculateDeliveryFee() {
     var feeInput = document.getElementById('delivery_fee_input');
     
     if (pickupId && deliveryId) {
-        fetch('api.php?action=calculate_fee&pickup=' + pickupId + '&delivery=' + deliveryId)
+        // Use URLSearchParams for safe URL construction
+        const params = new URLSearchParams({
+            action: 'calculate_fee',
+            pickup: pickupId,
+            delivery: deliveryId
+        });
+        fetch('api.php?' + params.toString())
             .then(r => r.json())
             .then(data => {
                 if (data.success) {

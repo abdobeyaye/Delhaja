@@ -336,7 +336,9 @@ switch ($action) {
             $stmt = $conn->prepare("SELECT price FROM district_prices WHERE from_district_id = ? AND to_district_id = ?");
             $stmt->execute([$pickup, $delivery]);
             $row = $stmt->fetch();
-            $fee = $row ? $row['price'] : 150; // Default to 150 if no price found
+            // Default to 150 MRU if no price found (middle of 100-200 range)
+            // This should rarely happen as all 100 routes are pre-populated
+            $fee = $row ? $row['price'] : 150;
             echo json_encode(['success' => true, 'fee' => $fee]);
         } else {
             echo json_encode(['success' => false, 'fee' => 0]);
