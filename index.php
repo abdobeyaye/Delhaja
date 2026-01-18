@@ -1631,7 +1631,11 @@ require_once 'actions.php';
                     $stmt->execute([$uid, $uid]);
                     $res = $stmt;
                 } elseif($role == 'customer') {
-                    $sql = "SELECT * FROM orders1 WHERE customer_name = ? OR client_id = ? ORDER BY id DESC LIMIT 50";
+                    $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified
+                            FROM orders1 o
+                            LEFT JOIN users1 d ON o.driver_id = d.id
+                            WHERE o.customer_name = ? OR o.client_id = ?
+                            ORDER BY o.id DESC LIMIT 50";
                     $stmt = $conn->prepare($sql);
                     $stmt->execute([$u['username'], $uid]);
                     $res = $stmt;
@@ -1682,6 +1686,12 @@ require_once 'actions.php';
                                 <?php echo $deliveryPrice; ?> <?php echo $t['mru'] ?? 'MRU'; ?>
                             </div>
                             <?php endif; ?>
+                            <?php if(($st == 'accepted' || $st == 'picked_up' || $st == 'delivered') && !empty($row['accepted_at'])): ?>
+                            <div class="tag-new tag-time">
+                                <i class="fas fa-clock"></i>
+                                <?php echo fmtDate($row['accepted_at']); ?>
+                            </div>
+                            <?php endif; ?>
                         </div>
 
                         <?php if($pickupZone && $dropoffZone): ?>
@@ -1727,6 +1737,31 @@ require_once 'actions.php';
                                 </div>
                             </div>
                         </div>
+
+                        <?php if($role == 'customer' && ($st == 'accepted' || $st == 'picked_up') && !empty($row['driver_id'])): ?>
+                        <!-- Driver Info for Customer -->
+                        <div class="alert alert-info mb-3 py-2">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="fas fa-motorcycle text-info"></i>
+                                <strong><?php echo e($row['driver_name'] ?? ($t['driver'] ?? 'Driver')); ?></strong>
+                                <?php if(!empty($row['driver_verified'])): ?>
+                                <span class="badge bg-success"><i class="fas fa-check-circle"></i></span>
+                                <?php endif; ?>
+                            </div>
+                            <?php if(!empty($row['driver_phone'])): ?>
+                            <div class="mb-2">
+                                <a href="tel:+222<?php echo e($row['driver_phone']); ?>" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-phone me-1"></i>+222 <?php echo e($row['driver_phone']); ?>
+                                </a>
+                            </div>
+                            <?php endif; ?>
+                            <?php if(!empty($row['accepted_at'])): ?>
+                            <div class="small text-muted">
+                                <i class="fas fa-clock me-1"></i><?php echo $t['driver_assigned'] ?? 'Driver assigned'; ?>: <?php echo fmtDate($row['accepted_at']); ?>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
 
                         <?php if($role == 'customer' && $st != 'delivered' && $st != 'cancelled'): ?>
                         <!-- PIN Code for Customer -->
