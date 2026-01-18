@@ -38,7 +38,7 @@ The database schema is properly defined with all required columns:
 - `discount_amount` (DECIMAL(10,2)) - Discount applied ✅
 - Timestamps: `created_at`, `updated_at`, `accepted_at`, `picked_at`, `delivered_at`, `cancelled_at`
 
-### 3. Order Form (index.php lines 1527-1583) ✅
+### 3. Order Form (index.php lines 1520-1585) ✅
 
 **Form Fields:**
 ```html
@@ -64,7 +64,7 @@ The database schema is properly defined with all required columns:
 
 **Key Fixes Applied:**
 1. ✅ Removed `required` attribute from hidden GPS inputs (lines 1560-1561)
-2. ✅ Removed `required` attribute from address field (line 1555)
+2. ✅ Removed `required` attribute from address field (line 1554-1555)
 3. ✅ Removed inline styles from submit button (line 1579)
 
 ### 4. Form Submission Handler (actions.php lines 371-514) ✅
