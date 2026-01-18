@@ -326,71 +326,32 @@ switch ($action) {
         break;
 
     // ==========================================
-    // VALIDATE PROMO CODE
+    // CALCULATE DELIVERY FEE
     // ==========================================
-    case 'validate_promo':
-        $code = strtoupper(trim($_GET['code'] ?? ''));
-
-        if (empty($code)) {
-            echo json_encode(['success' => false, 'message' => 'Please enter a promo code']);
-            exit();
-        }
-
-        try {
-            $stmt = $conn->prepare("SELECT * FROM promo_codes WHERE code = ? AND is_active = 1");
-            $stmt->execute([$code]);
-            $promo = $stmt->fetch();
-
-            if (!$promo) {
-                echo json_encode(['success' => false, 'message' => 'Invalid promo code']);
-                exit();
-            }
-
-            // Check if expired
-            $now = time();
-            if ($promo['valid_from'] && strtotime($promo['valid_from']) > $now) {
-                echo json_encode(['success' => false, 'message' => 'Promo code not yet valid']);
-                exit();
-            }
-
-            if ($promo['valid_until'] && strtotime($promo['valid_until']) < $now) {
-                echo json_encode(['success' => false, 'message' => 'Promo code has expired']);
-                exit();
-            }
-
-            // Check if max uses reached
-            if ($promo['max_uses'] && $promo['used_count'] >= $promo['max_uses']) {
-                echo json_encode(['success' => false, 'message' => 'Promo code has reached maximum uses']);
-                exit();
-            }
-
-            // Check if user already used this code
-            if ($user['role'] == 'customer') {
-                $check = $conn->prepare("SELECT id FROM promo_code_uses WHERE promo_code_id = ? AND user_id = ?");
-                $check->execute([$promo['id'], $user['id']]);
-                if ($check->rowCount() > 0) {
-                    echo json_encode(['success' => false, 'message' => 'You have already used this promo code']);
-                    exit();
+    case 'calculate_fee':
+        $pickup_id = (int)($_GET['pickup'] ?? 0);
+        $delivery_id = (int)($_GET['delivery'] ?? 0);
+        
+        if ($pickup_id && $delivery_id) {
+            try {
+                // Get price from district_prices table
+                $stmt = $conn->prepare("SELECT price FROM district_prices WHERE from_district_id = ? AND to_district_id = ?");
+                $stmt->execute([$pickup_id, $delivery_id]);
+                $result = $stmt->fetch();
+                
+                if ($result) {
+                    $fee = $result['price'];
+                } else {
+                    // Use default from config if route not found
+                    $fee = $default_delivery_fee;
                 }
+                
+                echo json_encode(['success' => true, 'fee' => $fee]);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'fee' => $default_delivery_fee, 'error' => 'Database error']);
             }
-
-            // Valid promo code
-            $discount_text = $promo['discount_type'] == 'percentage'
-                ? $promo['discount_value'] . '% off'
-                : $promo['discount_value'] . ' MRU off';
-
-            echo json_encode([
-                'success' => true,
-                'message' => 'Valid! You get ' . $discount_text,
-                'promo' => [
-                    'id' => $promo['id'],
-                    'code' => $promo['code'],
-                    'discount_type' => $promo['discount_type'],
-                    'discount_value' => $promo['discount_value']
-                ]
-            ]);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Error validating promo code']);
+        } else {
+            echo json_encode(['success' => false, 'fee' => 0, 'error' => 'Missing district IDs']);
         }
         break;
 
