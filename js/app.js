@@ -349,6 +349,30 @@ function editOrder(order) {
 }
 
 // ==========================================
+// DISTRICT MANAGEMENT
+// ==========================================
+function showAddDistrictModal() {
+    document.getElementById('districtModalTitle').textContent = document.querySelector('[data-add-district-title]')?.textContent || 'Add District';
+    document.getElementById('districtForm').reset();
+    document.getElementById('districtId').value = '';
+    document.getElementById('districtIsActive').checked = true;
+    
+    var modal = new bootstrap.Modal(document.getElementById('districtModal'));
+    modal.show();
+}
+
+function editDistrict(district) {
+    document.getElementById('districtModalTitle').textContent = document.querySelector('[data-edit-district-title]')?.textContent || 'Edit District';
+    document.getElementById('districtId').value = district.id;
+    document.getElementById('districtName').value = district.name;
+    document.getElementById('districtNameAr').value = district.name_ar;
+    document.getElementById('districtIsActive').checked = district.is_active == 1;
+    
+    var modal = new bootstrap.Modal(document.getElementById('districtModal'));
+    modal.show();
+}
+
+// ==========================================
 // ORDER TRACKING FOR CUSTOMERS
 // ==========================================
 function _showOrderTracking(order, translations) {

@@ -68,6 +68,25 @@ if (isset($_SESSION['user'])) {
             }
         }
 
+        // Handle driver districts (if driver role)
+        if ($u['role'] == 'driver' && isset($_POST['districts'])) {
+            $selected_districts = $_POST['districts'];
+            
+            // Delete existing district assignments
+            $conn->prepare("DELETE FROM driver_districts WHERE driver_id = ?")->execute([$uid]);
+            
+            // Insert new district assignments
+            if (!empty($selected_districts) && is_array($selected_districts)) {
+                $stmt = $conn->prepare("INSERT INTO driver_districts (driver_id, district_id) VALUES (?, ?)");
+                foreach ($selected_districts as $district_id) {
+                    $district_id = (int)$district_id;
+                    if ($district_id > 0) {
+                        $stmt->execute([$uid, $district_id]);
+                    }
+                }
+            }
+        }
+
         // Refresh session with updated user data
         $stmt = $conn->prepare("SELECT * FROM users1 WHERE id=?");
         $stmt->execute([$uid]);
@@ -363,6 +382,80 @@ if (isset($_SESSION['user'])) {
             header("Location: index.php");
             exit();
         }
+
+        // ==========================================
+        // DISTRICT MANAGEMENT
+        // ==========================================
+        
+        // Save District (Create/Update)
+        if (isset($_POST['save_district'])) {
+            $district_id = !empty($_POST['district_id']) ? (int)$_POST['district_id'] : null;
+            $name = trim($_POST['district_name']);
+            $name_ar = trim($_POST['district_name_ar']);
+            $is_active = isset($_POST['is_active']) ? 1 : 0;
+
+            // Validate
+            if (empty($name) || empty($name_ar)) {
+                setFlash('error', $t['district_required'] ?? 'Please enter district names');
+                header("Location: index.php#districts");
+                exit();
+            }
+
+            if ($district_id) {
+                // Update existing
+                $stmt = $conn->prepare("UPDATE districts SET name=?, name_ar=?, is_active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?");
+                $stmt->execute([$name, $name_ar, $is_active, $district_id]);
+                setFlash('success', $t['district_saved'] ?? 'District updated successfully!');
+            } else {
+                // Create new
+                $stmt = $conn->prepare("INSERT INTO districts (name, name_ar, is_active) VALUES (?, ?, ?)");
+                $stmt->execute([$name, $name_ar, $is_active]);
+                setFlash('success', $t['district_saved'] ?? 'District created successfully!');
+            }
+
+            header("Location: index.php#districts");
+            exit();
+        }
+
+        // Toggle District Active Status
+        if (isset($_GET['toggle_district'])) {
+            $district_id = (int)$_GET['toggle_district'];
+            $stmt = $conn->prepare("SELECT is_active FROM districts WHERE id=?");
+            $stmt->execute([$district_id]);
+            $district = $stmt->fetch();
+
+            if ($district) {
+                $new_status = $district['is_active'] ? 0 : 1;
+                $conn->prepare("UPDATE districts SET is_active=? WHERE id=?")->execute([$new_status, $district_id]);
+                setFlash('success', $new_status ? ($t['district_activated'] ?? 'District activated!') : ($t['district_deactivated'] ?? 'District deactivated!'));
+            }
+            header("Location: index.php#districts");
+            exit();
+        }
+
+        // Delete District
+        if (isset($_GET['delete_district'])) {
+            $district_id = (int)$_GET['delete_district'];
+            
+            // Check if district has orders
+            $orders_check = $conn->prepare("SELECT COUNT(*) FROM orders1 WHERE district_id = ?");
+            $orders_check->execute([$district_id]);
+            $orders_count = $orders_check->fetchColumn();
+            
+            // Check if district has drivers
+            $drivers_check = $conn->prepare("SELECT COUNT(*) FROM driver_districts WHERE district_id = ?");
+            $drivers_check->execute([$district_id]);
+            $drivers_count = $drivers_check->fetchColumn();
+            
+            if ($orders_count > 0 || $drivers_count > 0) {
+                setFlash('error', $t['cannot_delete_district'] ?? 'Cannot delete district (has orders or assigned drivers)');
+            } else {
+                $conn->prepare("DELETE FROM districts WHERE id=?")->execute([$district_id]);
+                setFlash('success', $t['district_deleted'] ?? 'District deleted successfully!');
+            }
+            header("Location: index.php#districts");
+            exit();
+        }
     }
 
     // ==========================================
@@ -371,8 +464,11 @@ if (isset($_SESSION['user'])) {
     if (isset($_POST['add_order']) && $u['role'] == 'customer') {
         // Get form data
         $details = mb_convert_encoding(trim($_POST['details']), 'UTF-8', 'UTF-8');
-        $address = mb_convert_encoding(trim($_POST['address'] ?? $u['address'] ?? ''), 'UTF-8', 'UTF-8');
         $client_phone = preg_replace('/[^0-9]/', '', $_POST['client_phone'] ?? '');
+        
+        // District-based location
+        $district_id = !empty($_POST['district_id']) ? (int)$_POST['district_id'] : null;
+        $detailed_address = mb_convert_encoding(trim($_POST['detailed_address'] ?? ''), 'UTF-8', 'UTF-8');
 
         // Validate order details
         if (empty($details) || strlen($details) < 3) {
@@ -381,20 +477,25 @@ if (isset($_SESSION['user'])) {
             exit();
         }
 
-        // GPS pickup coordinates
-        $pickup_lat = !empty($_POST['pickup_lat']) ? floatval($_POST['pickup_lat']) : null;
-        $pickup_lng = !empty($_POST['pickup_lng']) ? floatval($_POST['pickup_lng']) : null;
-
-        // Validate GPS location is provided
-        if (!$pickup_lat || !$pickup_lng) {
-            setFlash('error', $t['gps_required'] ?? 'Please set your GPS location for pickup');
+        // Validate district selection
+        if (!$district_id) {
+            setFlash('error', $t['district_required'] ?? 'Please select a district');
             header("Location: index.php");
             exit();
         }
 
-        // Validate GPS coordinates are within valid ranges
-        if ($pickup_lat < -90 || $pickup_lat > 90 || $pickup_lng < -180 || $pickup_lng > 180) {
-            setFlash('error', $t['invalid_gps'] ?? 'Invalid GPS coordinates. Please try again.');
+        // Verify district exists and is active
+        $stmt = $conn->prepare("SELECT id FROM districts WHERE id = ? AND is_active = 1");
+        $stmt->execute([$district_id]);
+        if (!$stmt->fetch()) {
+            setFlash('error', $t['district_required'] ?? 'Please select a valid district');
+            header("Location: index.php");
+            exit();
+        }
+
+        // Validate detailed address
+        if (empty($detailed_address) || strlen($detailed_address) < 10) {
+            setFlash('error', $t['address_required'] ?? 'Please enter your detailed address (minimum 10 characters)');
             header("Location: index.php");
             exit();
         }
@@ -476,15 +577,15 @@ if (isset($_SESSION['user'])) {
         if ($details) {
             $otp = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
 
-            $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, client_phone, pickup_lat, pickup_lng, status, delivery_code, points_cost, promo_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, detailed_address, client_phone, district_id, status, delivery_code, points_cost, promo_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)");
             $stmt->execute([
                 $uid,
                 $u['username'],
                 $details,
-                $address ?: 'GPS Location',
+                $detailed_address, // Use detailed address as the main address
+                $detailed_address, // Also store in detailed_address field
                 $client_phone ?: $u['phone'],
-                $pickup_lat,
-                $pickup_lng,
+                $district_id,
                 $otp,
                 $points_cost_per_order,
                 $promo_code,
