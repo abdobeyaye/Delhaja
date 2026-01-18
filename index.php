@@ -594,6 +594,9 @@ require_once 'actions.php';
                     <a class="nav-link" data-bs-toggle="tab" href="#orders"><i class="fas fa-box"></i> <span class="d-none d-sm-inline"><?php echo $t['manage_orders']; ?></span></a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#districts"><i class="fas fa-map-marked-alt"></i> <span class="d-none d-sm-inline"><?php echo $t['manage_districts'] ?? 'Districts'; ?></span></a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#points"><i class="fas fa-coins"></i> <span class="d-none d-sm-inline"><?php echo $t['add_points']; ?></span></a>
                 </li>
                 <li class="nav-item">
@@ -875,6 +878,69 @@ require_once 'actions.php';
                     </div>
                 </div>
 
+                <!-- DISTRICTS TAB -->
+                <div class="tab-pane fade" id="districts">
+                    <div class="card content-card">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between flex-wrap gap-2">
+                            <h5 class="mb-0"><i class="fas fa-map-marked-alt text-primary"></i> <?php echo $t['manage_districts'] ?? 'Manage Districts'; ?></h5>
+                            <button class="btn btn-sm btn-primary" onclick="showAddDistrictModal()">
+                                <i class="fas fa-plus"></i> <?php echo $t['add_district'] ?? 'Add District'; ?>
+                            </button>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th><?php echo $t['district_name'] ?? 'District Name'; ?></th>
+                                            <th><?php echo $t['district_name_ar'] ?? 'Arabic Name'; ?></th>
+                                            <th><?php echo $t['status'] ?? 'Status'; ?></th>
+                                            <th><?php echo $t['actions'] ?? 'Actions'; ?></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $districts = $conn->query("SELECT * FROM districts ORDER BY name");
+                                        if($districts->rowCount() == 0): ?>
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4 text-muted">
+                                                <i class="fas fa-map-marked-alt fa-2x mb-2 d-block"></i>
+                                                <?php echo $t['no_districts'] ?? 'No districts yet'; ?>
+                                            </td>
+                                        </tr>
+                                        <?php else: while($district = $districts->fetch()): ?>
+                                        <tr>
+                                            <td><strong><?php echo e($district['name']); ?></strong></td>
+                                            <td><?php echo e($district['name_ar']); ?></td>
+                                            <td>
+                                                <?php if($district['is_active']): ?>
+                                                    <span class="badge bg-success"><?php echo $t['active'] ?? 'Active'; ?></span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-secondary"><?php echo $t['inactive'] ?? 'Inactive'; ?></span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" onclick='editDistrict(<?php echo json_encode($district); ?>)'>
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <a href="?toggle_district=<?php echo $district['id']; ?>" class="btn btn-outline-<?php echo $district['is_active'] ? 'warning' : 'success'; ?>">
+                                                        <i class="fas fa-<?php echo $district['is_active'] ? 'pause' : 'play'; ?>"></i>
+                                                    </a>
+                                                    <a href="?delete_district=<?php echo $district['id']; ?>" class="btn btn-outline-danger" onclick="return confirm('<?php echo $t['confirm_delete'] ?? 'Delete this district?'; ?>')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <?php endwhile; endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- POINTS TAB -->
                 <div class="tab-pane fade" id="points">
                     <div class="card content-card" style="max-width: 500px;">
@@ -1143,6 +1209,46 @@ require_once 'actions.php';
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo $t['cancel']; ?></button>
                                 <button type="submit" name="bulk_recharge_drivers" class="btn btn-success">
                                     <i class="fas fa-check-circle me-1"></i><?php echo $t['confirm_recharge'] ?? 'Confirm Recharge'; ?>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add/Edit District Modal -->
+            <div class="modal fade" id="districtModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-map-marked-alt text-primary"></i> <span id="districtModalTitle"><?php echo $t['add_district'] ?? 'Add District'; ?></span></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form method="POST" accept-charset="UTF-8" id="districtForm">
+                            <div class="modal-body">
+                                <input type="hidden" name="district_id" id="districtId">
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold"><?php echo $t['district_name'] ?? 'District Name (French)'; ?> *</label>
+                                    <input type="text" name="district_name" id="districtName" class="form-control" required maxlength="100" placeholder="e.g. Tevragh Zeina">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold"><?php echo $t['district_name_ar'] ?? 'District Name (Arabic)'; ?> *</label>
+                                    <input type="text" name="district_name_ar" id="districtNameAr" class="form-control" required maxlength="100" placeholder="مثال: تفرغ زينة" dir="rtl">
+                                </div>
+
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="is_active" id="districtIsActive" value="1" checked>
+                                    <label class="form-check-label" for="districtIsActive">
+                                        <?php echo $t['active'] ?? 'Active'; ?>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo $t['cancel']; ?></button>
+                                <button type="submit" name="save_district" class="btn btn-primary">
+                                    <i class="fas fa-check-circle me-1"></i><?php echo $t['save'] ?? 'Save'; ?>
                                 </button>
                             </div>
                         </form>

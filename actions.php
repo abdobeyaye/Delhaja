@@ -382,6 +382,80 @@ if (isset($_SESSION['user'])) {
             header("Location: index.php");
             exit();
         }
+
+        // ==========================================
+        // DISTRICT MANAGEMENT
+        // ==========================================
+        
+        // Save District (Create/Update)
+        if (isset($_POST['save_district'])) {
+            $district_id = !empty($_POST['district_id']) ? (int)$_POST['district_id'] : null;
+            $name = trim($_POST['district_name']);
+            $name_ar = trim($_POST['district_name_ar']);
+            $is_active = isset($_POST['is_active']) ? 1 : 0;
+
+            // Validate
+            if (empty($name) || empty($name_ar)) {
+                setFlash('error', $t['district_required'] ?? 'Please enter district names');
+                header("Location: index.php#districts");
+                exit();
+            }
+
+            if ($district_id) {
+                // Update existing
+                $stmt = $conn->prepare("UPDATE districts SET name=?, name_ar=?, is_active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?");
+                $stmt->execute([$name, $name_ar, $is_active, $district_id]);
+                setFlash('success', $t['district_saved'] ?? 'District updated successfully!');
+            } else {
+                // Create new
+                $stmt = $conn->prepare("INSERT INTO districts (name, name_ar, is_active) VALUES (?, ?, ?)");
+                $stmt->execute([$name, $name_ar, $is_active]);
+                setFlash('success', $t['district_saved'] ?? 'District created successfully!');
+            }
+
+            header("Location: index.php#districts");
+            exit();
+        }
+
+        // Toggle District Active Status
+        if (isset($_GET['toggle_district'])) {
+            $district_id = (int)$_GET['toggle_district'];
+            $stmt = $conn->prepare("SELECT is_active FROM districts WHERE id=?");
+            $stmt->execute([$district_id]);
+            $district = $stmt->fetch();
+
+            if ($district) {
+                $new_status = $district['is_active'] ? 0 : 1;
+                $conn->prepare("UPDATE districts SET is_active=? WHERE id=?")->execute([$new_status, $district_id]);
+                setFlash('success', $new_status ? ($t['district_activated'] ?? 'District activated!') : ($t['district_deactivated'] ?? 'District deactivated!'));
+            }
+            header("Location: index.php#districts");
+            exit();
+        }
+
+        // Delete District
+        if (isset($_GET['delete_district'])) {
+            $district_id = (int)$_GET['delete_district'];
+            
+            // Check if district has orders
+            $orders_check = $conn->prepare("SELECT COUNT(*) FROM orders1 WHERE district_id = ?");
+            $orders_check->execute([$district_id]);
+            $orders_count = $orders_check->fetchColumn();
+            
+            // Check if district has drivers
+            $drivers_check = $conn->prepare("SELECT COUNT(*) FROM driver_districts WHERE district_id = ?");
+            $drivers_check->execute([$district_id]);
+            $drivers_count = $drivers_check->fetchColumn();
+            
+            if ($orders_count > 0 || $drivers_count > 0) {
+                setFlash('error', $t['cannot_delete_district'] ?? 'Cannot delete district (has orders or assigned drivers)');
+            } else {
+                $conn->prepare("DELETE FROM districts WHERE id=?")->execute([$district_id]);
+                setFlash('success', $t['district_deleted'] ?? 'District deleted successfully!');
+            }
+            header("Location: index.php#districts");
+            exit();
+        }
     }
 
     // ==========================================
