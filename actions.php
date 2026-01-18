@@ -328,9 +328,14 @@ if (isset($_SESSION['user'])) {
                 $address = $pickup_name . ' → ' . $dropoff_name;
             }
 
-            $stmt = $conn->prepare("INSERT INTO orders1 (customer_name, details, address, pickup_zone, dropoff_zone, delivery_price, status, driver_id, delivery_code, points_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$customer_name, $details, $address, $pickup_zone, $dropoff_zone, $delivery_price, $status, $driver_id, $otp, $points_cost_per_order]);
-            setFlash('success', 'Order added successfully');
+            try {
+                $stmt = $conn->prepare("INSERT INTO orders1 (customer_name, details, address, pickup_zone, dropoff_zone, delivery_price, status, driver_id, delivery_code, points_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$customer_name, $details, $address, $pickup_zone, $dropoff_zone, $delivery_price, $status, $driver_id, $otp, $points_cost_per_order]);
+                setFlash('success', $t['success_order_added'] ?? 'Order added successfully');
+            } catch (PDOException $e) {
+                error_log("Admin order creation failed: " . $e->getMessage());
+                setFlash('error', $t['err_order_failed'] ?? 'Failed to add order. Please try again.');
+            }
             header("Location: index.php");
             exit();
         }
@@ -488,37 +493,42 @@ if (isset($_SESSION['user'])) {
                 $address = $pickup_name . ' → ' . $dropoff_name;
             }
 
-            $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, client_phone, pickup_zone, dropoff_zone, delivery_price, status, delivery_code, points_cost, promo_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)");
-            $stmt->execute([
-                $uid,
-                $u['username'],
-                $details,
-                $address,
-                $client_phone ?: $u['phone'],
-                $pickup_zone,
-                $dropoff_zone,
-                $delivery_price,
-                $otp,
-                $points_cost_per_order,
-                $promo_code,
-                $discount_amount
-            ]);
+            try {
+                $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, client_phone, pickup_zone, dropoff_zone, delivery_price, status, delivery_code, points_cost, promo_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)");
+                $stmt->execute([
+                    $uid,
+                    $u['username'],
+                    $details,
+                    $address,
+                    $client_phone ?: $u['phone'],
+                    $pickup_zone,
+                    $dropoff_zone,
+                    $delivery_price,
+                    $otp,
+                    $points_cost_per_order,
+                    $promo_code,
+                    $discount_amount
+                ]);
 
-            $order_id = $conn->lastInsertId();
+                $order_id = $conn->lastInsertId();
 
-            // If promo code was used, update usage tracking
-            if ($promo_id) {
-                // Increment usage count
-                $conn->prepare("UPDATE promo_codes SET used_count = used_count + 1 WHERE id = ?")
-                    ->execute([$promo_id]);
+                // If promo code was used, update usage tracking
+                if ($promo_id) {
+                    // Increment usage count
+                    $conn->prepare("UPDATE promo_codes SET used_count = used_count + 1 WHERE id = ?")
+                        ->execute([$promo_id]);
 
-                // Track user usage
-                $conn->prepare("INSERT INTO promo_code_uses (promo_code_id, user_id, order_id, discount_amount) VALUES (?, ?, ?, ?)")
-                    ->execute([$promo_id, $uid, $order_id, $discount_amount]);
+                    // Track user usage
+                    $conn->prepare("INSERT INTO promo_code_uses (promo_code_id, user_id, order_id, discount_amount) VALUES (?, ?, ?, ?)")
+                        ->execute([$promo_id, $uid, $order_id, $discount_amount]);
 
-                setFlash('success', ($t['success_add_with_promo'] ?? 'Order created! Discount applied: %s MRU') . ' ' . number_format($discount_amount, 2) . ' MRU');
-            } else {
-                setFlash('success', $t['success_add']);
+                    setFlash('success', ($t['success_add_with_promo'] ?? 'Order created! Discount applied: %s MRU') . ' ' . number_format($discount_amount, 2) . ' MRU');
+                } else {
+                    setFlash('success', $t['success_add']);
+                }
+            } catch (PDOException $e) {
+                error_log("Customer order creation failed: " . $e->getMessage());
+                setFlash('error', $t['err_order_failed'] ?? 'Failed to create order. Please try again.');
             }
 
             header("Location: index.php");

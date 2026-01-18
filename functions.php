@@ -231,37 +231,55 @@ function formatRating($rating, $showNumber = true) {
 function getDriverStats($conn, $driverId) {
     $stats = [
         'total_orders' => 0,
+        'total_delivered' => 0,
+        'total_earnings' => 0,
         'completed_today' => 0,
         'earnings_today' => 0,
         'earnings_week' => 0,
         'earnings_month' => 0,
+        'this_month' => 0,
+        'active_orders' => 0,
         'rating' => 5.0
     ];
 
-    // Total completed orders
+    // Total completed orders (delivered)
     $stmt = $conn->prepare("SELECT COUNT(*) FROM orders1 WHERE driver_id = ? AND status = 'delivered'");
     $stmt->execute([$driverId]);
     $stats['total_orders'] = $stmt->fetchColumn();
+    // Alias for backward compatibility with index.php
+    $stats['total_delivered'] = $stats['total_orders'];
 
     // Completed today
     $stmt = $conn->prepare("SELECT COUNT(*) FROM orders1 WHERE driver_id = ? AND status = 'delivered' AND DATE(delivered_at) = CURDATE()");
     $stmt->execute([$driverId]);
     $stats['completed_today'] = $stmt->fetchColumn();
 
-    // Earnings (points spent by driver for orders)
+    // Earnings today (points spent by driver for orders)
     $stmt = $conn->prepare("SELECT COALESCE(SUM(points_cost), 0) FROM orders1 WHERE driver_id = ? AND status = 'delivered' AND DATE(delivered_at) = CURDATE()");
     $stmt->execute([$driverId]);
     $stats['earnings_today'] = $stmt->fetchColumn();
 
-    // This week
+    // Earnings this week
     $stmt = $conn->prepare("SELECT COALESCE(SUM(points_cost), 0) FROM orders1 WHERE driver_id = ? AND status = 'delivered' AND YEARWEEK(delivered_at) = YEARWEEK(NOW())");
     $stmt->execute([$driverId]);
     $stats['earnings_week'] = $stmt->fetchColumn();
 
-    // This month
+    // Earnings this month
     $stmt = $conn->prepare("SELECT COALESCE(SUM(points_cost), 0) FROM orders1 WHERE driver_id = ? AND status = 'delivered' AND MONTH(delivered_at) = MONTH(NOW()) AND YEAR(delivered_at) = YEAR(NOW())");
     $stmt->execute([$driverId]);
     $stats['earnings_month'] = $stmt->fetchColumn();
+    // Alias for backward compatibility with index.php
+    $stats['this_month'] = $stats['earnings_month'];
+
+    // Total earnings (all time)
+    $stmt = $conn->prepare("SELECT COALESCE(SUM(points_cost), 0) FROM orders1 WHERE driver_id = ? AND status = 'delivered'");
+    $stmt->execute([$driverId]);
+    $stats['total_earnings'] = $stmt->fetchColumn();
+
+    // Active orders (accepted or picked_up)
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM orders1 WHERE driver_id = ? AND status IN ('accepted', 'picked_up')");
+    $stmt->execute([$driverId]);
+    $stats['active_orders'] = $stmt->fetchColumn();
 
     // Average rating
     $stmt = $conn->prepare("SELECT AVG(score) FROM ratings WHERE ratee_id = ?");
