@@ -599,9 +599,6 @@ require_once 'actions.php';
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#points"><i class="fas fa-coins"></i> <span class="d-none d-sm-inline"><?php echo $t['add_points']; ?></span></a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-bs-toggle="tab" href="#promo-codes"><i class="fas fa-tag"></i> <span class="d-none d-sm-inline"><?php echo $t['promo_codes'] ?? 'Promo Codes'; ?></span></a>
-                </li>
             </ul>
 
             <div class="tab-content">
@@ -980,94 +977,6 @@ require_once 'actions.php';
                     </div>
                 </div>
 
-                <!-- PROMO CODES TAB -->
-                <div class="tab-pane fade" id="promo-codes">
-                    <div class="card content-card">
-                        <div class="card-header bg-white py-3 d-flex justify-content-between flex-wrap gap-2">
-                            <h5 class="mb-0"><i class="fas fa-tag text-success"></i> <?php echo $t['promo_codes'] ?? 'Promo Codes'; ?></h5>
-                            <button class="btn btn-sm btn-success" onclick="showAddPromoCodeModal()">
-                                <i class="fas fa-plus"></i> <?php echo $t['create_promo'] ?? 'Create Promo Code'; ?>
-                            </button>
-                        </div>
-                        <div class="card-body p-3">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th><?php echo $t['code'] ?? 'Code'; ?></th>
-                                            <th><?php echo $t['discount'] ?? 'Discount'; ?></th>
-                                            <th><?php echo $t['usage'] ?? 'Usage'; ?></th>
-                                            <th><?php echo $t['validity'] ?? 'Validity'; ?></th>
-                                            <th><?php echo $t['status'] ?? 'Status'; ?></th>
-                                            <th><?php echo $t['actions'] ?? 'Actions'; ?></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php
-                                        $promo_codes = $conn->query("SELECT * FROM promo_codes ORDER BY created_at DESC");
-                                        if($promo_codes->rowCount() == 0): ?>
-                                        <tr>
-                                            <td colspan="6" class="text-center py-4 text-muted">
-                                                <i class="fas fa-tag fa-2x mb-2 d-block"></i>
-                                                <?php echo $t['no_promo_codes'] ?? 'No promo codes yet. Create one to get started!'; ?>
-                                            </td>
-                                        </tr>
-                                        <?php else: while($promo = $promo_codes->fetch()):
-                                            $is_expired = $promo['valid_until'] && strtotime($promo['valid_until']) < time();
-                                            $is_maxed = $promo['max_uses'] && $promo['used_count'] >= $promo['max_uses'];
-                                        ?>
-                                        <tr>
-                                            <td><strong class="text-primary"><?php echo e($promo['code']); ?></strong></td>
-                                            <td>
-                                                <?php if($promo['discount_type'] == 'percentage'): ?>
-                                                    <span class="badge bg-info"><?php echo $promo['discount_value']; ?>%</span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-success"><?php echo $promo['discount_value']; ?> MRU</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <?php echo $promo['used_count']; ?> / <?php echo $promo['max_uses'] ?? '∞'; ?>
-                                            </td>
-                                            <td class="small">
-                                                <?php if($promo['valid_from']): ?>
-                                                    <div>From: <?php echo date('Y-m-d', strtotime($promo['valid_from'])); ?></div>
-                                                <?php endif; ?>
-                                                <?php if($promo['valid_until']): ?>
-                                                    <div>Until: <?php echo date('Y-m-d', strtotime($promo['valid_until'])); ?></div>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <?php if(!$promo['is_active']): ?>
-                                                    <span class="badge bg-secondary"><?php echo $t['inactive'] ?? 'Inactive'; ?></span>
-                                                <?php elseif($is_expired): ?>
-                                                    <span class="badge bg-danger"><?php echo $t['expired'] ?? 'Expired'; ?></span>
-                                                <?php elseif($is_maxed): ?>
-                                                    <span class="badge bg-warning text-dark"><?php echo $t['max_uses_reached'] ?? 'Max Uses'; ?></span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-success"><?php echo $t['active'] ?? 'Active'; ?></span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-outline-primary" onclick='editPromoCode(<?php echo json_encode($promo); ?>)'>
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <a href="?toggle_promo=<?php echo $promo['id']; ?>" class="btn btn-outline-<?php echo $promo['is_active'] ? 'warning' : 'success'; ?>">
-                                                        <i class="fas fa-<?php echo $promo['is_active'] ? 'pause' : 'play'; ?>"></i>
-                                                    </a>
-                                                    <a href="?delete_promo=<?php echo $promo['id']; ?>" class="btn btn-outline-danger" onclick="return confirm('<?php echo $t['confirm_delete'] ?? 'Delete this promo code?'; ?>')">
-                                                        <i class="fas fa-trash"></i>
-                                                    </a>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <?php endwhile; endif; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <script>
                 function filterDrivers() {
@@ -1256,71 +1165,6 @@ require_once 'actions.php';
                 </div>
             </div>
 
-            <!-- Add/Edit Promo Code Modal -->
-            <div class="modal fade" id="promoCodeModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title"><i class="fas fa-tag text-success"></i> <span id="promoModalTitle"><?php echo $t['create_promo'] ?? 'Create Promo Code'; ?></span></h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form method="POST" accept-charset="UTF-8" id="promoCodeForm">
-                            <div class="modal-body">
-                                <input type="hidden" name="promo_id" id="promoId">
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold"><?php echo $t['code'] ?? 'Code'; ?> *</label>
-                                    <input type="text" name="promo_code" id="promoCode" class="form-control text-uppercase" required pattern="[A-Z0-9]+" placeholder="e.g. SUMMER2026" maxlength="50">
-                                    <small class="text-muted"><?php echo $t['code_help'] ?? 'Uppercase letters and numbers only'; ?></small>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold"><?php echo $t['discount_type'] ?? 'Discount Type'; ?> *</label>
-                                    <select name="discount_type" id="discountType" class="form-select" required onchange="updateDiscountLabel()">
-                                        <option value="percentage"><?php echo $t['percentage'] ?? 'Percentage'; ?> (%)</option>
-                                        <option value="fixed"><?php echo $t['fixed_amount'] ?? 'Fixed Amount'; ?> (MRU)</option>
-                                    </select>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold"><span id="discountLabel"><?php echo $t['discount_value'] ?? 'Discount Value'; ?></span> *</label>
-                                    <input type="number" name="discount_value" id="discountValue" class="form-control" required min="0" max="100" step="0.01" placeholder="e.g. 20">
-                                    <small class="text-muted" id="discountHelp"><?php echo $t['percentage_help'] ?? 'Enter percentage (e.g., 20 for 20% off)'; ?></small>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold"><?php echo $t['max_uses'] ?? 'Maximum Uses'; ?></label>
-                                    <input type="number" name="max_uses" id="maxUses" class="form-control" min="1" placeholder="<?php echo $t['unlimited'] ?? 'Leave empty for unlimited'; ?>">
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold"><?php echo $t['valid_from'] ?? 'Valid From'; ?></label>
-                                        <input type="date" name="valid_from" id="validFrom" class="form-control">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold"><?php echo $t['valid_until'] ?? 'Valid Until'; ?></label>
-                                        <input type="date" name="valid_until" id="validUntil" class="form-control">
-                                    </div>
-                                </div>
-
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="is_active" id="isActive" value="1" checked>
-                                    <label class="form-check-label" for="isActive">
-                                        <?php echo $t['active'] ?? 'Active'; ?>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo $t['cancel']; ?></button>
-                                <button type="submit" name="save_promo_code" class="btn btn-success">
-                                    <i class="fas fa-check-circle me-1"></i><?php echo $t['save'] ?? 'Save'; ?>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
 
             <!-- Add Order Modal -->
             <div class="modal fade" id="addOrderModal" tabindex="-1">
@@ -1782,24 +1626,30 @@ require_once 'actions.php';
                     $driver_districts = $driver_districts_query->fetchAll(PDO::FETCH_COLUMN);
                     
                     if (count($driver_districts) > 0) {
-                        // Driver has selected districts - show orders from those districts
+                        // Driver has selected districts - show orders from those districts (pickup OR delivery)
                         $placeholders = implode(',', array_fill(0, count($driver_districts), '?'));
-                        $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                        $sql = "SELECT o.*, 
+                                       dp.name as pickup_district_name, dp.name_ar as pickup_district_name_ar,
+                                       dd.name as delivery_district_name, dd.name_ar as delivery_district_name_ar
                                 FROM orders1 o 
-                                LEFT JOIN districts d ON o.district_id = d.id
+                                LEFT JOIN districts dp ON o.pickup_district_id = dp.id
+                                LEFT JOIN districts dd ON o.delivery_district_id = dd.id
                                 WHERE (o.driver_id = ? AND o.status IN ('accepted', 'picked_up'))
-                                OR (o.status = 'pending' AND o.district_id IN ($placeholders))
+                                OR (o.status = 'pending' AND (o.pickup_district_id IN ($placeholders) OR o.delivery_district_id IN ($placeholders)))
                                 ORDER BY CASE WHEN o.driver_id = ? THEN 0 ELSE 1 END, o.id DESC
                                 LIMIT 50";
                         $stmt = $conn->prepare($sql);
-                        $params = array_merge([$uid], $driver_districts, [$uid]);
+                        $params = array_merge([$uid], $driver_districts, $driver_districts, [$uid]);
                         $stmt->execute($params);
                         $res = $stmt;
                     } else {
                         // Driver has no districts selected - only show their accepted orders
-                        $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                        $sql = "SELECT o.*, 
+                                       dp.name as pickup_district_name, dp.name_ar as pickup_district_name_ar,
+                                       dd.name as delivery_district_name, dd.name_ar as delivery_district_name_ar
                                 FROM orders1 o 
-                                LEFT JOIN districts d ON o.district_id = d.id
+                                LEFT JOIN districts dp ON o.pickup_district_id = dp.id
+                                LEFT JOIN districts dd ON o.delivery_district_id = dd.id
                                 WHERE o.driver_id = ? AND o.status IN ('accepted', 'picked_up') 
                                 ORDER BY o.id DESC LIMIT 50";
                         $stmt = $conn->prepare($sql);
@@ -1807,18 +1657,24 @@ require_once 'actions.php';
                         $res = $stmt;
                     }
                 } elseif($role == 'customer') {
-                    $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                    $sql = "SELECT o.*, 
+                                   dp.name as pickup_district_name, dp.name_ar as pickup_district_name_ar,
+                                   dd.name as delivery_district_name, dd.name_ar as delivery_district_name_ar
                             FROM orders1 o 
-                            LEFT JOIN districts d ON o.district_id = d.id
+                            LEFT JOIN districts dp ON o.pickup_district_id = dp.id
+                            LEFT JOIN districts dd ON o.delivery_district_id = dd.id
                             WHERE o.customer_name = ? OR o.client_id = ? 
                             ORDER BY o.id DESC LIMIT 50";
                     $stmt = $conn->prepare($sql);
                     $stmt->execute([$u['username'], $uid]);
                     $res = $stmt;
                 } else {
-                    $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                    $sql = "SELECT o.*, 
+                                   dp.name as pickup_district_name, dp.name_ar as pickup_district_name_ar,
+                                   dd.name as delivery_district_name, dd.name_ar as delivery_district_name_ar
                             FROM orders1 o 
-                            LEFT JOIN districts d ON o.district_id = d.id
+                            LEFT JOIN districts dp ON o.pickup_district_id = dp.id
+                            LEFT JOIN districts dd ON o.delivery_district_id = dd.id
                             ORDER BY o.id DESC LIMIT 50";
                     $res = $conn->query($sql);
                 }
@@ -1872,15 +1728,31 @@ require_once 'actions.php';
                                 <i class="fas fa-<?php echo getStatusIcon($st); ?>"></i>
                                 <?php echo $t['st_'.$st] ?? ucfirst($st); ?>
                             </div>
-                            <?php if(!empty($row['district_name'])): ?>
-                            <div class="tag-new tag-accepted">
-                                <i class="fas fa-map-marked-alt"></i>
-                                <?php 
-                                echo $lang == 'ar' ? e($row['district_name_ar']) : e($row['district_name']); 
-                                ?>
+                            <?php if(!empty($row['delivery_fee'])): ?>
+                            <div class="tag-new tag-delivered">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <?php echo $row['delivery_fee']; ?> MRU
                             </div>
                             <?php endif; ?>
                         </div>
+
+                        <!-- Districts Route -->
+                        <?php if(!empty($row['pickup_district_name']) && !empty($row['delivery_district_name'])): ?>
+                        <div class="route-info mb-2 p-2 bg-light rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="small">
+                                    <i class="fas fa-circle text-success me-1"></i>
+                                    <strong><?php echo $t['from'] ?? 'From'; ?>:</strong> 
+                                    <?php echo $lang == 'ar' ? e($row['pickup_district_name_ar']) : e($row['pickup_district_name']); ?>
+                                </div>
+                                <div class="small">
+                                    <i class="fas fa-flag-checkered text-danger me-1"></i>
+                                    <strong><?php echo $t['to'] ?? 'To'; ?>:</strong> 
+                                    <?php echo $lang == 'ar' ? e($row['delivery_district_name_ar']) : e($row['delivery_district_name']); ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
 
                         <!-- Route Visual -->
                         <div class="route-row">
@@ -1895,7 +1767,7 @@ require_once 'actions.php';
                                     <div class="loc-sub"><?php echo e($row['customer_name']); ?></div>
                                 </div>
                                 <div>
-                                    <div class="loc-title"><i class="fas fa-map-marker-alt text-danger me-1"></i><?php echo e($row['address']); ?></div>
+                                    <div class="loc-title"><i class="fas fa-map-marker-alt text-danger me-1"></i><?php echo e($row['detailed_address'] ?: $row['address']); ?></div>
                                     <?php if($row['client_phone']): ?>
                                     <div class="loc-sub">
                                         <a href="tel:+222<?php echo $row['client_phone']; ?>" class="text-primary">
