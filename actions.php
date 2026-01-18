@@ -449,7 +449,7 @@ if (isset($_SESSION['user'])) {
         $fee_stmt = $conn->prepare("SELECT price FROM district_prices WHERE from_district_id = ? AND to_district_id = ?");
         $fee_stmt->execute([$pickup_district_id, $delivery_district_id]);
         $fee_row = $fee_stmt->fetch();
-        $verified_fee = $fee_row ? $fee_row['price'] : 150; // Default to 150 if route not found
+        $verified_fee = $fee_row ? $fee_row['price'] : $default_delivery_fee; // Use constant for default
 
         // Security check: ensure submitted fee matches database
         if ($delivery_fee != $verified_fee) {

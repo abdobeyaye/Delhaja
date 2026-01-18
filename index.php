@@ -1628,6 +1628,7 @@ require_once 'actions.php';
                     if (count($driver_districts) > 0) {
                         // Driver has selected districts - show orders from those districts (pickup OR delivery)
                         $placeholders = implode(',', array_fill(0, count($driver_districts), '?'));
+                        // Optimized query: single district list check with OR
                         $sql = "SELECT o.*, 
                                        dp.name as pickup_district_name, dp.name_ar as pickup_district_name_ar,
                                        dd.name as delivery_district_name, dd.name_ar as delivery_district_name_ar
@@ -1635,10 +1636,12 @@ require_once 'actions.php';
                                 LEFT JOIN districts dp ON o.pickup_district_id = dp.id
                                 LEFT JOIN districts dd ON o.delivery_district_id = dd.id
                                 WHERE (o.driver_id = ? AND o.status IN ('accepted', 'picked_up'))
-                                OR (o.status = 'pending' AND (o.pickup_district_id IN ($placeholders) OR o.delivery_district_id IN ($placeholders)))
+                                   OR (o.status = 'pending' AND 
+                                       (o.pickup_district_id IN ($placeholders) OR o.delivery_district_id IN ($placeholders)))
                                 ORDER BY CASE WHEN o.driver_id = ? THEN 0 ELSE 1 END, o.id DESC
                                 LIMIT 50";
                         $stmt = $conn->prepare($sql);
+                        // Prepare params: driver_id, district list (for pickup), district list (for delivery), driver_id
                         $params = array_merge([$uid], $driver_districts, $driver_districts, [$uid]);
                         $stmt->execute($params);
                         $res = $stmt;

@@ -13,6 +13,8 @@ if (session_status() === PHP_SESSION_NONE) {
 // ==========================================
 // DATABASE CONNECTION
 // ==========================================
+// NOTE: In production, use environment variables instead of hardcoded credentials!
+// Example: $db_host = getenv('DB_HOST') ?: 'localhost';
 $db_host = 'localhost';
 $db_name = 'delhaja';
 $db_user = 'root';
@@ -39,6 +41,9 @@ try {
 
 // Points cost per order for drivers
 $points_cost_per_order = 20;
+
+// Default delivery fee (if route not found in pricing table)
+$default_delivery_fee = 150;
 
 // Order expiry time in hours (auto-cancel pending orders)
 $order_expiry_hours = 3;

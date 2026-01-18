@@ -342,13 +342,13 @@ switch ($action) {
                 if ($result) {
                     $fee = $result['price'];
                 } else {
-                    // Default to 150 if route not found
-                    $fee = 150;
+                    // Use default from config if route not found
+                    $fee = $default_delivery_fee;
                 }
                 
                 echo json_encode(['success' => true, 'fee' => $fee]);
             } catch (Exception $e) {
-                echo json_encode(['success' => false, 'fee' => 150, 'error' => 'Database error']);
+                echo json_encode(['success' => false, 'fee' => $default_delivery_fee, 'error' => 'Database error']);
             }
         } else {
             echo json_encode(['success' => false, 'fee' => 0, 'error' => 'Missing district IDs']);

@@ -1145,6 +1145,7 @@ function calculateDeliveryFee() {
     const feeDisplay = document.getElementById('deliveryFeeDisplay');
     const feeText = document.getElementById('calculatedFee');
     const feeInput = document.getElementById('delivery_fee_input');
+    const DEFAULT_FEE = 150; // Default delivery fee if route not found
     
     if (pickupId && deliveryId) {
         // Fetch the delivery fee from API
@@ -1157,16 +1158,16 @@ function calculateDeliveryFee() {
                     feeDisplay.style.display = 'block';
                 } else {
                     // Default fee if error
-                    feeText.textContent = '150';
-                    feeInput.value = '150';
+                    feeText.textContent = DEFAULT_FEE;
+                    feeInput.value = DEFAULT_FEE;
                     feeDisplay.style.display = 'block';
                 }
             })
             .catch(error => {
                 console.error('Error calculating fee:', error);
                 // Default fee on error
-                feeText.textContent = '150';
-                feeInput.value = '150';
+                feeText.textContent = DEFAULT_FEE;
+                feeInput.value = DEFAULT_FEE;
                 feeDisplay.style.display = 'block';
             });
     } else {
