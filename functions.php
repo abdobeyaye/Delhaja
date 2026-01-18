@@ -679,65 +679,7 @@ $text = [
         'accept' => 'قبول',
         'decline' => 'رفض',
         'no_phone' => 'لا يوجد هاتف',
-        'update_order' => 'تحديث الطلب',
-
-        // Districts
-        'select_district' => 'اختر المقاطعة',
-        'district' => 'المقاطعة',
-        'detailed_address' => 'العنوان التفصيلي',
-        'detailed_address_placeholder' => 'أدخل عنوانك بالتفصيل (الشارع، المبنى، معلم قريب...)',
-        'district_required' => 'يرجى اختيار المقاطعة',
-        'address_required' => 'يرجى إدخال عنوانك التفصيلي (10 أحرف على الأقل)',
-        'manage_districts' => 'إدارة المقاطعات',
-        'add_district' => 'إضافة مقاطعة',
-        'edit_district' => 'تعديل مقاطعة',
-        'district_name' => 'اسم المقاطعة (فرنسي)',
-        'district_name_ar' => 'اسم المقاطعة (عربي)',
-        'my_districts' => 'مقاطعات عملي',
-        'select_districts' => 'اختر المقاطعات التي تعمل فيها',
-        'no_districts_selected' => 'يرجى اختيار مقاطعة واحدة على الأقل لاستقبال الطلبات',
-        'districts' => 'المقاطعات',
-        'district_saved' => 'تم حفظ المقاطعة بنجاح',
-        'district_deleted' => 'تم حذف المقاطعة',
-        'cannot_delete_district' => 'لا يمكن حذف المقاطعة (لها طلبات أو سائقين)',
-        'district_activated' => 'تم تفعيل المقاطعة',
-        'district_deactivated' => 'تم إيقاف المقاطعة',
-        'no_districts' => 'لا توجد مقاطعات',
-        'save_districts' => 'حفظ المقاطعات',
-
-        // Delivery Fee & Dual Districts
-        'delivery_fee' => 'رسوم التوصيل',
-        'pickup_district' => 'مقاطعة الاستلام',
-        'delivery_district' => 'مقاطعة التوصيل',
-        'pickup_district_required' => 'يرجى اختيار مقاطعة الاستلام',
-        'delivery_district_required' => 'يرجى اختيار مقاطعة التوصيل',
-        'from' => 'من',
-        'to' => 'إلى',
-        'delivery_price' => 'سعر التوصيل',
-        'calculated_fee' => 'الرسوم المحسوبة',
-        'fee_info' => 'الرسوم تعتمد على المسافة بين المقاطعات',
-        
-        // Cancel Order
-        'cancel_order' => 'إلغاء الطلب',
-        'cannot_cancel' => 'لا يمكن إلغاء هذا الطلب (تم قبوله من سائق)',
-        'order_cancelled' => 'تم إلغاء الطلب بنجاح',
-        'confirm_cancel_order' => 'هل أنت متأكد من إلغاء هذا الطلب؟',
-        
-        // Driver Info for Customers
-        'driver_info' => 'معلومات السائق',
-        'your_driver' => 'سائقك',
-        'delivery_code' => 'كود التسليم',
-        'call_driver' => 'اتصل بالسائق',
-        'whatsapp_driver' => 'واتساب السائق',
-        'driver_contact' => 'تواصل مع السائق',
-        'driver_details' => 'تفاصيل السائق',
-        
-        // Order Details Display
-        'order_what' => 'ماذا تريد توصيله؟',
-        'what_to_deliver' => 'ماذا سيتم توصيله',
-        'details_required' => 'يرجى تقديم تفاصيل الطلب (3 أحرف على الأقل)',
-        'order_notes' => 'ملاحظات الطلب',
-        'delivery_notes' => 'ملاحظات التوصيل'
+        'update_order' => 'تحديث الطلب'
     ],
 
     'fr' => [
@@ -1091,64 +1033,7 @@ $text = [
         'accept' => 'Accepter',
         'decline' => 'Refuser',
         'no_phone' => 'Pas de téléphone',
-        'update_order' => 'Mettre à jour',
-
-        // Districts
-        'select_district' => 'Sélectionner la commune',
-        'district' => 'Commune',
-        'detailed_address' => 'Adresse détaillée',
-        'detailed_address_placeholder' => 'Entrez votre adresse détaillée (rue, immeuble, repère...)',
-        'district_required' => 'Veuillez sélectionner une commune',
-        'address_required' => 'Veuillez entrer votre adresse détaillée (minimum 10 caractères)',
-        'manage_districts' => 'Gérer les communes',
-        'add_district' => 'Ajouter une commune',
-        'edit_district' => 'Modifier la commune',
-        'district_name' => 'Nom de la commune (Français)',
-        'district_name_ar' => 'Nom de la commune (Arabe)',
-        'my_districts' => 'Mes communes de travail',
-        'select_districts' => 'Sélectionnez les communes dans lesquelles vous opérez',
-        'no_districts_selected' => 'Veuillez sélectionner au moins une commune pour recevoir des commandes',
-        'districts' => 'Communes',
-        'district_saved' => 'Commune enregistrée avec succès',
-        'district_deleted' => 'Commune supprimée',
-        'cannot_delete_district' => 'Impossible de supprimer la commune (commandes ou chauffeurs assignés)',
-        'district_activated' => 'Commune activée',
-        'district_deactivated' => 'Commune désactivée',
-        'no_districts' => 'Aucune commune',
-        'save_districts' => 'Enregistrer les communes',
-
-        // Delivery Fee & Dual Districts
-        'delivery_fee' => 'Frais de livraison',
-        'pickup_district' => 'Commune de ramassage',
-        'delivery_district' => 'Commune de livraison',
-        'pickup_district_required' => 'Veuillez sélectionner une commune de ramassage',
-        'delivery_district_required' => 'Veuillez sélectionner une commune de livraison',
-        'from' => 'De',
-        'to' => 'À',
-        'delivery_price' => 'Prix de livraison',
-        'calculated_fee' => 'Frais calculés',
-        'fee_info' => 'Les frais dépendent de la distance entre les communes',
-        
-        // Cancel Order
-        'cancel_order' => 'Annuler la commande',
-        'cannot_cancel' => 'Impossible d\'annuler cette commande (acceptée par un chauffeur)',
-        'order_cancelled' => 'Commande annulée avec succès',
-        'confirm_cancel_order' => 'Êtes-vous sûr de vouloir annuler cette commande?',
-        
-        // Driver Info for Customers
-        'driver_info' => 'Informations du chauffeur',
-        'your_driver' => 'Votre chauffeur',
-        'delivery_code' => 'Code de livraison',
-        'whatsapp_driver' => 'WhatsApp chauffeur',
-        'driver_contact' => 'Contacter le chauffeur',
-        'driver_details' => 'Détails du chauffeur',
-        
-        // Order Details Display
-        'order_what' => 'Que voulez-vous livrer?',
-        'what_to_deliver' => 'Que livrer',
-        'details_required' => 'Veuillez fournir les détails de la commande (minimum 3 caractères)',
-        'order_notes' => 'Notes de commande',
-        'delivery_notes' => 'Notes de livraison'
+        'update_order' => 'Mettre à jour'
     ]
 ];
 $t = $text[$lang];
