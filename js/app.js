@@ -717,12 +717,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
             if (submitBtn) {
                 submitBtn.classList.add('btn-loading');
-                submitBtn.disabled = true;
 
                 // Store original text
                 if (!submitBtn.dataset.originalText) {
                     submitBtn.dataset.originalText = submitBtn.innerHTML;
                 }
+
+                // IMPORTANT: Delay disabling the button to allow form submission to complete
+                // Disabling synchronously can cancel form submission in some browsers
+                setTimeout(function() {
+                    submitBtn.disabled = true;
+                }, 100);
             }
 
             // Show loading overlay for important forms
