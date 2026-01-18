@@ -145,52 +145,16 @@ function showAuthForm(form) {
 // ==========================================
 document.querySelectorAll('form').forEach(form => {
     form.addEventListener('submit', function(e) {
-        const inputs = this.querySelectorAll('input[required], textarea[required]');
+        const inputs = this.querySelectorAll('input[required]');
         let valid = true;
 
         inputs.forEach(input => {
-            // Check if empty
             if (!input.value.trim()) {
                 valid = false;
                 input.classList.add('is-invalid');
-                return;
+            } else {
+                input.classList.remove('is-invalid');
             }
-            
-            // Check minlength
-            if (input.minLength && input.value.length < input.minLength) {
-                valid = false;
-                input.classList.add('is-invalid');
-                return;
-            }
-            
-            // Check maxlength (should be enforced by browser, but double-check)
-            if (input.maxLength && input.maxLength > 0 && input.value.length > input.maxLength) {
-                valid = false;
-                input.classList.add('is-invalid');
-                return;
-            }
-            
-            // Check pattern
-            if (input.pattern) {
-                const regex = new RegExp(input.pattern);
-                if (!regex.test(input.value)) {
-                    valid = false;
-                    input.classList.add('is-invalid');
-                    return;
-                }
-            }
-            
-            // Check email
-            if (input.type === 'email') {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(input.value)) {
-                    valid = false;
-                    input.classList.add('is-invalid');
-                    return;
-                }
-            }
-            
-            input.classList.remove('is-invalid');
         });
 
         // Password match check for registration
@@ -208,27 +172,10 @@ document.querySelectorAll('form').forEach(form => {
     });
 });
 
-// Remove invalid class on input and add real-time password validation
-document.querySelectorAll('input, textarea').forEach(input => {
+// Remove invalid class on input
+document.querySelectorAll('input').forEach(input => {
     input.addEventListener('input', function() {
         this.classList.remove('is-invalid');
-        
-        // Real-time password match validation
-        const form = this.closest('form');
-        if (form && this.name === 'reg_confirm_password') {
-            const password = form.querySelector('input[name="reg_password"]');
-            if (password && this.value && password.value !== this.value) {
-                this.classList.add('is-invalid');
-            }
-        }
-        
-        // Real-time password match for profile updates
-        if (form && this.name === 'confirm_new_password') {
-            const newPassword = form.querySelector('input[name="new_password"]');
-            if (newPassword && this.value && newPassword.value !== this.value) {
-                this.classList.add('is-invalid');
-            }
-        }
     });
 });
 
@@ -345,30 +292,6 @@ function editOrder(order) {
     document.getElementById('edit_order_driver').value = order.driver_id || '';
 
     var modal = new bootstrap.Modal(document.getElementById('editOrderModal'));
-    modal.show();
-}
-
-// ==========================================
-// DISTRICT MANAGEMENT
-// ==========================================
-function showAddDistrictModal() {
-    document.getElementById('districtModalTitle').textContent = document.querySelector('[data-add-district-title]')?.textContent || 'Add District';
-    document.getElementById('districtForm').reset();
-    document.getElementById('districtId').value = '';
-    document.getElementById('districtIsActive').checked = true;
-    
-    var modal = new bootstrap.Modal(document.getElementById('districtModal'));
-    modal.show();
-}
-
-function editDistrict(district) {
-    document.getElementById('districtModalTitle').textContent = document.querySelector('[data-edit-district-title]')?.textContent || 'Edit District';
-    document.getElementById('districtId').value = district.id;
-    document.getElementById('districtName').value = district.name;
-    document.getElementById('districtNameAr').value = district.name_ar;
-    document.getElementById('districtIsActive').checked = district.is_active == 1;
-    
-    var modal = new bootstrap.Modal(document.getElementById('districtModal'));
     modal.show();
 }
 
@@ -939,15 +862,11 @@ function _acceptOrderFromBubble(orderId, btn, translations) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     btn.disabled = true;
 
-    // Submit accept request with proper URL encoding
-    const params = new URLSearchParams();
-    params.append('accept_order', '1');
-    params.append('oid', orderId);
-    
+    // Submit accept request
     fetch('actions.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
+        body: `accept_order=1&oid=${orderId}`
     })
     .then(response => {
         if (response.redirected || response.ok) {
