@@ -389,6 +389,46 @@ require_once 'actions.php';
                                     </div>
                                 </div>
 
+                                <?php if($role == 'driver'): ?>
+                                <!-- Driver Districts Section -->
+                                <div class="section-divider">
+                                    <i class="fas fa-map-marked-alt me-2"></i> <?php echo $t['my_districts'] ?? 'My Operating Districts'; ?>
+                                </div>
+
+                                <div class="alert alert-light border-0 bg-light rounded-3 mb-3">
+                                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i> <?php echo $t['select_districts'] ?? 'Select the districts you operate in'; ?></small>
+                                </div>
+
+                                <?php
+                                // Get driver's currently selected districts
+                                $driver_districts_stmt = $conn->prepare("SELECT district_id FROM driver_districts WHERE driver_id = ?");
+                                $driver_districts_stmt->execute([$uid]);
+                                $selected_districts = $driver_districts_stmt->fetchAll(PDO::FETCH_COLUMN);
+                                
+                                // Get all active districts
+                                $all_districts = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
+                                ?>
+
+                                <div class="mb-4">
+                                    <?php while($district = $all_districts->fetch()): ?>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="districts[]" value="<?php echo $district['id']; ?>" 
+                                               id="district_<?php echo $district['id']; ?>"
+                                               <?php echo in_array($district['id'], $selected_districts) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="district_<?php echo $district['id']; ?>">
+                                            <?php 
+                                            if ($lang == 'ar'):
+                                                echo e($district['name_ar']) . ' - ' . e($district['name']);
+                                            else:
+                                                echo e($district['name']) . ' - ' . e($district['name_ar']);
+                                            endif;
+                                            ?>
+                                        </label>
+                                    </div>
+                                    <?php endwhile; ?>
+                                </div>
+                                <?php endif; ?>
+
                                 <button type="submit" name="update_profile" class="btn btn-primary w-100 py-3 fw-bold rounded-pill">
                                     <i class="fas fa-check-circle me-2"></i><?php echo $t['save_changes']; ?>
                                 </button>
@@ -1614,48 +1654,65 @@ require_once 'actions.php';
             <!-- ORDERS AS ULTRA CARDS -->
             <div class="orders-container" id="ordersContainer">
                 <?php
-                // Get driver's location for distance filtering
-                $driverLat = $u['last_lat'] ?? null;
-                $driverLng = $u['last_lng'] ?? null;
-                $maxDistance = 7; // 7km radius for drivers
-
                 if($role == 'driver') {
-                    if ($driverLat && $driverLng) {
-                        $sql = "SELECT *,
-                                (6371 * acos(cos(radians(?)) * cos(radians(pickup_lat)) * cos(radians(pickup_lng) - radians(?)) + sin(radians(?)) * sin(radians(pickup_lat)))) AS distance
-                                FROM orders1
-                                WHERE (driver_id = ? AND status IN ('accepted', 'picked_up'))
-                                OR (status = 'pending' AND pickup_lat IS NOT NULL
-                                    AND (6371 * acos(cos(radians(?)) * cos(radians(pickup_lat)) * cos(radians(pickup_lng) - radians(?)) + sin(radians(?)) * sin(radians(pickup_lat)))) <= ?)
-                                ORDER BY CASE WHEN driver_id = ? THEN 0 ELSE 1 END, distance ASC, id DESC
+                    // Get driver's selected districts
+                    $driver_districts_query = $conn->prepare("SELECT district_id FROM driver_districts WHERE driver_id = ?");
+                    $driver_districts_query->execute([$uid]);
+                    $driver_districts = $driver_districts_query->fetchAll(PDO::FETCH_COLUMN);
+                    
+                    if (count($driver_districts) > 0) {
+                        // Driver has selected districts - show orders from those districts
+                        $placeholders = implode(',', array_fill(0, count($driver_districts), '?'));
+                        $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                                FROM orders1 o 
+                                LEFT JOIN districts d ON o.district_id = d.id
+                                WHERE (o.driver_id = ? AND o.status IN ('accepted', 'picked_up'))
+                                OR (o.status = 'pending' AND o.district_id IN ($placeholders))
+                                ORDER BY CASE WHEN o.driver_id = ? THEN 0 ELSE 1 END, o.id DESC
                                 LIMIT 50";
                         $stmt = $conn->prepare($sql);
-                        $stmt->execute([$driverLat, $driverLng, $driverLat, $uid, $driverLat, $driverLng, $driverLat, $maxDistance, $uid]);
+                        $params = array_merge([$uid], $driver_districts, [$uid]);
+                        $stmt->execute($params);
                         $res = $stmt;
                     } else {
-                        $sql = "SELECT * FROM orders1 WHERE driver_id = ? AND status IN ('accepted', 'picked_up') ORDER BY id DESC LIMIT 50";
+                        // Driver has no districts selected - only show their accepted orders
+                        $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                                FROM orders1 o 
+                                LEFT JOIN districts d ON o.district_id = d.id
+                                WHERE o.driver_id = ? AND o.status IN ('accepted', 'picked_up') 
+                                ORDER BY o.id DESC LIMIT 50";
                         $stmt = $conn->prepare($sql);
                         $stmt->execute([$uid]);
                         $res = $stmt;
                     }
                 } elseif($role == 'customer') {
-                    $sql = "SELECT * FROM orders1 WHERE customer_name = ? OR client_id = ? ORDER BY id DESC LIMIT 50";
+                    $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                            FROM orders1 o 
+                            LEFT JOIN districts d ON o.district_id = d.id
+                            WHERE o.customer_name = ? OR o.client_id = ? 
+                            ORDER BY o.id DESC LIMIT 50";
                     $stmt = $conn->prepare($sql);
                     $stmt->execute([$u['username'], $uid]);
                     $res = $stmt;
                 } else {
-                    $sql = "SELECT * FROM orders1 ORDER BY id DESC LIMIT 50";
+                    $sql = "SELECT o.*, d.name as district_name, d.name_ar as district_name_ar 
+                            FROM orders1 o 
+                            LEFT JOIN districts d ON o.district_id = d.id
+                            ORDER BY o.id DESC LIMIT 50";
                     $res = $conn->query($sql);
                 }
 
-                if($role == 'driver' && !$driverLat):
+                if($role == 'driver' && count($driver_districts) == 0):
                 ?>
                 <div class="ultra-card">
                     <div class="card-inner">
                         <div class="text-center py-4">
-                            <i class="fas fa-location-crosshairs fa-3x text-warning mb-3"></i>
-                            <h5 class="fw-bold"><?php echo $t['enable_gps'] ?? 'Enable GPS to see nearby orders'; ?></h5>
-                            <p class="text-muted small"><?php echo $t['gps_driver_note'] ?? 'Turn on your GPS to find orders within 7km of your location'; ?></p>
+                            <i class="fas fa-map-marked-alt fa-3x text-warning mb-3"></i>
+                            <h5 class="fw-bold"><?php echo $t['no_districts_selected'] ?? 'Please select districts'; ?></h5>
+                            <p class="text-muted small"><?php echo $t['select_districts'] ?? 'Go to settings to select the districts you operate in'; ?></p>
+                            <a href="?settings=1" class="btn btn-primary mt-2">
+                                <i class="fas fa-cog me-1"></i> <?php echo $t['settings']; ?>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -1667,13 +1724,12 @@ require_once 'actions.php';
                         <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted"><?php echo $t['no_orders']; ?></h5>
                         <p class="text-muted small mb-0">
-                            <?php echo ($role == 'driver') ? ($driverLat ? $t['no_nearby_orders'] ?? 'No orders nearby (7km radius)' : $t['enable_gps_first'] ?? 'Enable GPS first') : $t['check_back_later']; ?>
+                            <?php echo $t['check_back_later']; ?>
                         </p>
                     </div>
                 </div>
                 <?php else: while($row = $res->fetch()):
                     $st = $row['status'];
-                    $orderDistance = isset($row['distance']) ? round($row['distance'], 1) : null;
                     $statusTagClass = ($st == 'pending') ? 'tag-pending' : (($st == 'accepted') ? 'tag-accepted' : (($st == 'picked_up') ? 'tag-picked' : (($st == 'cancelled') ? 'tag-cancelled' : 'tag-delivered')));
                 ?>
                 <div class="ultra-card">
@@ -1683,7 +1739,7 @@ require_once 'actions.php';
                             <div class="price-tag">
                                 #<?php echo $row['id']; ?>
                             </div>
-                            <div class="time-tag <?php echo ($orderDistance && $orderDistance < 3) ? '' : 'blue'; ?>">
+                            <div class="time-tag blue">
                                 <i class="fa-regular fa-clock"></i>
                                 <?php echo fmtDate($row['created_at']); ?>
                             </div>
@@ -1695,53 +1751,15 @@ require_once 'actions.php';
                                 <i class="fas fa-<?php echo getStatusIcon($st); ?>"></i>
                                 <?php echo $t['st_'.$st] ?? ucfirst($st); ?>
                             </div>
-                            <?php if($role == 'driver' && $st == 'pending' && $orderDistance !== null): ?>
+                            <?php if(!empty($row['district_name'])): ?>
                             <div class="tag-new tag-accepted">
-                                <i class="fas fa-route"></i>
-                                <?php echo $orderDistance; ?> <?php echo $t['km'] ?? 'km'; ?>
-                            </div>
-                            <?php endif; ?>
-                            <?php if($st != 'pending' && $st != 'cancelled' && !empty($row['distance_km'])): ?>
-                            <div class="tag-new tag-accepted">
-                                <i class="fas fa-route"></i>
-                                <?php echo number_format($row['distance_km'], 1); ?> <?php echo $t['km'] ?? 'km'; ?>
-                            </div>
-                            <div class="tag-new tag-pending">
-                                <i class="fas fa-clock"></i>
-                                ~<?php echo ceil($row['distance_km'] / 25 * 60); ?> <?php echo $t['min'] ?? 'min'; ?>
+                                <i class="fas fa-map-marked-alt"></i>
+                                <?php 
+                                echo $lang == 'ar' ? e($row['district_name_ar']) : e($row['district_name']); 
+                                ?>
                             </div>
                             <?php endif; ?>
                         </div>
-
-                        <?php if($st != 'pending' && $st != 'cancelled' && $st != 'delivered' && !empty($row['distance_km'])): ?>
-                        <!-- Distance/Time Info -->
-                        <div class="order-distance-info">
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <div class="distance-item">
-                                        <div class="distance-icon route">
-                                            <i class="fas fa-route"></i>
-                                        </div>
-                                        <div>
-                                            <div class="distance-value"><?php echo number_format($row['distance_km'], 1); ?> km</div>
-                                            <div class="distance-label"><?php echo $t['distance'] ?? 'Distance'; ?></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="distance-item">
-                                        <div class="distance-icon time">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                        <div>
-                                            <div class="distance-value">~<?php echo ceil($row['distance_km'] / 25 * 60); ?> min</div>
-                                            <div class="distance-label"><?php echo $t['estimated_time'] ?? 'Est. Time'; ?></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <?php endif; ?>
 
                         <!-- Route Visual -->
                         <div class="route-row">

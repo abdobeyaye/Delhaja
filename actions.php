@@ -68,6 +68,25 @@ if (isset($_SESSION['user'])) {
             }
         }
 
+        // Handle driver districts (if driver role)
+        if ($u['role'] == 'driver' && isset($_POST['districts'])) {
+            $selected_districts = $_POST['districts'];
+            
+            // Delete existing district assignments
+            $conn->prepare("DELETE FROM driver_districts WHERE driver_id = ?")->execute([$uid]);
+            
+            // Insert new district assignments
+            if (!empty($selected_districts) && is_array($selected_districts)) {
+                $stmt = $conn->prepare("INSERT INTO driver_districts (driver_id, district_id) VALUES (?, ?)");
+                foreach ($selected_districts as $district_id) {
+                    $district_id = (int)$district_id;
+                    if ($district_id > 0) {
+                        $stmt->execute([$uid, $district_id]);
+                    }
+                }
+            }
+        }
+
         // Refresh session with updated user data
         $stmt = $conn->prepare("SELECT * FROM users1 WHERE id=?");
         $stmt->execute([$uid]);
