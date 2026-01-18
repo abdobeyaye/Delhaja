@@ -301,16 +301,7 @@ switch ($action) {
                 $districts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                 
                 if (count($districts) == 2) {
-                    $zone_diff = abs($districts[$pickup_id] - $districts[$delivery_id]);
-                    
-                    if ($zone_diff == 0) {
-                        $fee = 100; // Same zone
-                    } elseif ($zone_diff == 1) {
-                        $fee = 150; // Adjacent zones
-                    } else {
-                        $fee = 200; // Far zones (2+ difference)
-                    }
-                    
+                    $fee = calculateDeliveryFee($districts[$pickup_id], $districts[$delivery_id]);
                     echo json_encode(['success' => true, 'fee' => $fee]);
                 } else {
                     echo json_encode(['success' => false, 'error' => 'Invalid districts']);

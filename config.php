@@ -56,6 +56,11 @@ $driver_max_active_orders = 3; // Maximum active orders per driver
 // Order expiry time (hours)
 $order_expiry_hours = 3; // Auto-cancel pending orders after 3 hours
 
+// Delivery fee settings (MRU - Mauritanian Ouguiya)
+define('DELIVERY_FEE_SAME_ZONE', 100);      // Same zone or adjacent districts
+define('DELIVERY_FEE_ADJACENT_ZONE', 150);  // 1 zone difference
+define('DELIVERY_FEE_FAR_ZONE', 200);       // 2+ zones difference
+
 // File upload settings
 $upload_dir = 'uploads/';
 $max_file_size = 5 * 1024 * 1024; // 5 MB
@@ -295,6 +300,24 @@ function generateSerialNumber($conn, $role) {
  */
 function isPhoneVerified($user) {
     return !empty($user['phone']) && $user['phone_verified'] == 1;
+}
+
+/**
+ * Calculate delivery fee based on zone difference
+ * @param int $zone1 First district zone
+ * @param int $zone2 Second district zone
+ * @return int Delivery fee in MRU
+ */
+function calculateDeliveryFee($zone1, $zone2) {
+    $zone_diff = abs($zone1 - $zone2);
+    
+    if ($zone_diff == 0) {
+        return DELIVERY_FEE_SAME_ZONE; // Same zone
+    } elseif ($zone_diff == 1) {
+        return DELIVERY_FEE_ADJACENT_ZONE; // Adjacent zones
+    } else {
+        return DELIVERY_FEE_FAR_ZONE; // Far zones (2+ difference)
+    }
 }
 
 /**

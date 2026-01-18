@@ -1693,15 +1693,16 @@ require_once 'actions.php';
                                 </div>
                             </div>
 
-                            <div class="mb-3">
+                             <div class="mb-3">
                                 <label class="form-label small text-muted mb-1">
                                     <i class="fas fa-map-marker-alt me-1 text-success"></i><?php echo $t['pickup_district'] ?? 'Pickup District'; ?> <span class="text-danger">*</span>
                                 </label>
                                 <select name="pickup_district_id" id="pickup_district_id" class="form-control" required onchange="calculateDeliveryFee()" style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
                                     <option value=""><?php echo $t['select_district'] ?? 'Select District'; ?></option>
                                     <?php
-                                    $districts_query = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
-                                    while ($district = $districts_query->fetch()):
+                                    // Fetch districts once for reuse
+                                    $districts_list = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name")->fetchAll();
+                                    foreach ($districts_list as $district):
                                         // Show bilingual names: "District Name - الاسم العربي" (or reversed for RTL)
                                         if ($lang == 'ar'):
                                             $display_name = $district['name_ar'] . ' - ' . $district['name'];
@@ -1710,7 +1711,7 @@ require_once 'actions.php';
                                         endif;
                                     ?>
                                         <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 </select>
                                 <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['from'] ?? 'From'; ?> - <?php echo $t['pickup_district_required'] ?? 'Where to pick up from'; ?></small>
                             </div>
@@ -1722,8 +1723,8 @@ require_once 'actions.php';
                                 <select name="delivery_district_id" id="delivery_district_id" class="form-control" required onchange="calculateDeliveryFee()" style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
                                     <option value=""><?php echo $t['select_district'] ?? 'Select District'; ?></option>
                                     <?php
-                                    $districts_query2 = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
-                                    while ($district = $districts_query2->fetch()):
+                                    // Reuse districts fetched above
+                                    foreach ($districts_list as $district):
                                         if ($lang == 'ar'):
                                             $display_name = $district['name_ar'] . ' - ' . $district['name'];
                                         else:
@@ -1731,7 +1732,7 @@ require_once 'actions.php';
                                         endif;
                                     ?>
                                         <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 </select>
                                 <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['to'] ?? 'To'; ?> - <?php echo $t['delivery_district_required'] ?? 'Where to deliver'; ?></small>
                             </div>

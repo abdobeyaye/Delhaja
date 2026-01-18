@@ -426,15 +426,8 @@ if (isset($_SESSION['user'])) {
         // Calculate delivery fee based on zone difference
         $pickup_zone = $districts[$pickup_district_id];
         $delivery_zone = $districts[$delivery_district_id];
-        $zone_diff = abs($pickup_zone - $delivery_zone);
-        
-        if ($zone_diff == 0) {
-            $delivery_fee = 100; // Same zone
-        } elseif ($zone_diff == 1) {
-            $delivery_fee = 150; // Adjacent zones
-        } else {
-            $delivery_fee = 200; // Far zones (2+ difference)
-        }
+        $delivery_fee = calculateDeliveryFee($pickup_zone, $delivery_zone);
+
 
         // Validate detailed address
         if (empty($detailed_address) || strlen($detailed_address) < 10) {
