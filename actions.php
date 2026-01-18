@@ -721,11 +721,33 @@ if (isset($_SESSION['user'])) {
     if (isset($_POST['pickup_order']) && $u['role'] == 'driver') {
         $oid = (int)$_POST['oid'];
 
-        $stmt = $conn->prepare("UPDATE orders1 SET status='picked_up', picked_at=NOW() WHERE id=? AND driver_id=? AND status='accepted'");
-        $stmt->execute([$oid, $uid]);
+        if (!$oid) {
+            setFlash('error', $t['err_invalid_order'] ?? 'Invalid order');
+            header("Location: index.php");
+            exit();
+        }
 
-        if ($stmt->rowCount() > 0) {
-            setFlash('success', $t['package_picked'] ?? 'Package picked up');
+        // First check if the order exists and belongs to this driver
+        $check = $conn->prepare("SELECT id, status, driver_id FROM orders1 WHERE id=?");
+        $check->execute([$oid]);
+        $order = $check->fetch();
+
+        if (!$order) {
+            setFlash('error', $t['err_order_not_found'] ?? 'Order not found');
+        } elseif ($order['driver_id'] != $uid) {
+            setFlash('error', $t['err_not_your_order'] ?? 'This order is not assigned to you');
+        } elseif ($order['status'] != 'accepted') {
+            setFlash('error', $t['err_order_not_accepted'] ?? 'Order must be in accepted status to pick up');
+        } else {
+            // All checks passed, update the order
+            $stmt = $conn->prepare("UPDATE orders1 SET status='picked_up', picked_at=NOW() WHERE id=? AND driver_id=? AND status='accepted'");
+            $stmt->execute([$oid, $uid]);
+
+            if ($stmt->rowCount() > 0) {
+                setFlash('success', $t['package_picked'] ?? 'Package picked up! Enter the PIN code to complete delivery.');
+            } else {
+                setFlash('error', $t['err_pickup_failed'] ?? 'Failed to update order status. Please try again.');
+            }
         }
         header("Location: index.php");
         exit();
@@ -734,22 +756,41 @@ if (isset($_SESSION['user'])) {
     // Driver finishes delivery
     if (isset($_POST['finish_job']) && $u['role'] == 'driver') {
         $oid = (int)$_POST['oid'];
-        $pin = str_pad(trim($_POST['pin']), 4, '0', STR_PAD_LEFT);
+        $pin = trim($_POST['pin'] ?? '');
 
-        $chk = $conn->prepare("SELECT delivery_code, points_cost FROM orders1 WHERE id=? AND driver_id=? AND status IN ('accepted', 'picked_up')");
+        if (!$oid) {
+            setFlash('error', $t['err_invalid_order'] ?? 'Invalid order');
+            header("Location: index.php");
+            exit();
+        }
+
+        if (strlen($pin) != 4 || !ctype_digit($pin)) {
+            setFlash('error', $t['err_pin_format'] ?? 'PIN must be 4 digits');
+            header("Location: index.php");
+            exit();
+        }
+
+        // Pad PIN with leading zeros if needed
+        $pin = str_pad($pin, 4, '0', STR_PAD_LEFT);
+
+        $chk = $conn->prepare("SELECT delivery_code, points_cost, status FROM orders1 WHERE id=? AND driver_id=?");
         $chk->execute([$oid, $uid]);
         $order = $chk->fetch();
 
-        if ($order && $order['delivery_code'] === $pin) {
+        if (!$order) {
+            setFlash('error', $t['err_order_not_found'] ?? 'Order not found or not assigned to you');
+        } elseif (!in_array($order['status'], ['accepted', 'picked_up'])) {
+            setFlash('error', $t['err_order_status'] ?? 'Order cannot be completed in its current status');
+        } elseif ($order['delivery_code'] !== $pin) {
+            setFlash('error', $t['err_pin'] ?? 'Incorrect PIN code. Please check with customer.');
+        } else {
             $conn->prepare("UPDATE orders1 SET status='delivered', delivered_at=NOW() WHERE id=?")->execute([$oid]);
 
             // Update driver stats
             $conn->prepare("UPDATE users1 SET total_earnings = total_earnings + ? WHERE id=?")
                  ->execute([$order['points_cost'], $uid]);
 
-            setFlash('success', $t['success_fin']);
-        } else {
-            setFlash('error', $t['err_pin']);
+            setFlash('success', $t['success_fin'] ?? 'Delivery completed successfully!');
         }
         header("Location: index.php");
         exit();

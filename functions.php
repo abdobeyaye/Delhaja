@@ -435,6 +435,7 @@ $text = [
         'err_auth' => 'اسم المستخدم أو كلمة المرور غير صحيحة',
         'err_banned' => 'تم إيقاف حسابك. تواصل مع الإدارة',
         'err_pin' => 'كود التسليم غير صحيح',
+        'err_pin_format' => 'كود التسليم يجب أن يكون 4 أرقام',
         'err_username_short' => 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل',
         'err_password_short' => 'كلمة المرور يجب أن تكون 4 أحرف على الأقل',
         'err_password_mismatch' => 'كلمتا المرور غير متطابقتين',
@@ -442,6 +443,12 @@ $text = [
         'err_register' => 'فشل إنشاء الحساب. حاول مرة أخرى',
         'err_order_taken' => 'هذا الطلب تم قبوله من سائق آخر',
         'err_general' => 'حدث خطأ. حاول مرة أخرى',
+        'err_invalid_order' => 'طلب غير صالح',
+        'err_order_not_found' => 'الطلب غير موجود',
+        'err_not_your_order' => 'هذا الطلب غير مخصص لك',
+        'err_order_not_accepted' => 'يجب أن يكون الطلب في حالة مقبول لاستلامه',
+        'err_pickup_failed' => 'فشل تحديث حالة الطلب. حاول مرة أخرى',
+        'err_order_status' => 'لا يمكن إكمال الطلب في حالته الحالية',
 
         // Success
         'success_add' => 'تم نشر طلبك بنجاح',
@@ -645,7 +652,7 @@ $text = [
         'driver_assigned' => 'تم تعيين سائق',
         'driver_on_way' => 'السائق في الطريق',
         'driver_arrived' => 'السائق وصل',
-        'package_picked' => 'تم استلام الطرد',
+        'package_picked' => 'تم استلام الطرد! أدخل كود PIN لإكمال التوصيل',
         'on_the_way' => 'في الطريق إليك',
 
         // Tracking
@@ -801,6 +808,7 @@ $text = [
         'err_auth' => 'Nom d\'utilisateur ou mot de passe incorrect',
         'err_banned' => 'Compte suspendu. Contactez l\'admin',
         'err_pin' => 'Code PIN incorrect',
+        'err_pin_format' => 'Le code PIN doit être composé de 4 chiffres',
         'err_username_short' => 'Nom d\'utilisateur: minimum 3 caractères',
         'err_password_short' => 'Mot de passe: minimum 4 caractères',
         'err_password_mismatch' => 'Les mots de passe ne correspondent pas',
@@ -808,6 +816,12 @@ $text = [
         'err_register' => 'Échec de l\'inscription. Réessayez',
         'err_order_taken' => 'Commande déjà prise par un autre livreur',
         'err_general' => 'Une erreur s\'est produite. Réessayez',
+        'err_invalid_order' => 'Commande invalide',
+        'err_order_not_found' => 'Commande non trouvée',
+        'err_not_your_order' => 'Cette commande ne vous est pas attribuée',
+        'err_order_not_accepted' => 'La commande doit être acceptée avant récupération',
+        'err_pickup_failed' => 'Échec de la mise à jour du statut. Réessayez',
+        'err_order_status' => 'Impossible de terminer la commande dans son état actuel',
 
         // Success
         'success_add' => 'Commande publiée avec succès',
@@ -1011,7 +1025,7 @@ $text = [
         'driver_assigned' => 'Livreur assigné',
         'driver_on_way' => 'Livreur en route',
         'driver_arrived' => 'Livreur arrivé',
-        'package_picked' => 'Colis récupéré',
+        'package_picked' => 'Colis récupéré! Entrez le code PIN pour terminer la livraison',
         'on_the_way' => 'En route vers vous',
 
         // Tracking

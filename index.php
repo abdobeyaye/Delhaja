@@ -1787,9 +1787,9 @@ require_once 'actions.php';
 
                             <?php elseif($st == 'accepted' && $row['driver_id'] == $uid): ?>
                             <div class="d-flex gap-2 w-100">
-                                <form method="POST" class="flex-grow-1">
+                                <form method="POST" class="flex-grow-1" onsubmit="this.querySelector('button').disabled=true;">
                                     <input type="hidden" name="oid" value="<?php echo $row['id']; ?>">
-                                    <button type="submit" name="pickup_order" class="slider-btn-container info w-100">
+                                    <button type="submit" name="pickup_order" value="1" class="slider-btn-container info w-100">
                                         <div class="slider-thumb"><i class="fa-solid fa-box"></i></div>
                                         <div class="slider-text"><?php echo $t['driver_pickup'] ?? 'Picked Up'; ?></div>
                                     </button>
@@ -1800,10 +1800,10 @@ require_once 'actions.php';
                             </div>
 
                             <?php elseif($st == 'picked_up' && $row['driver_id'] == $uid): ?>
-                            <form method="POST" class="pin-input-row">
+                            <form method="POST" class="pin-input-row" onsubmit="this.querySelector('button').disabled=true;">
                                 <input type="hidden" name="oid" value="<?php echo $row['id']; ?>">
                                 <input type="text" name="pin" placeholder="<?php echo $t['enter_pin'] ?? 'Enter PIN'; ?>" required pattern="[0-9]{4}" maxlength="4" inputmode="numeric">
-                                <button type="submit" name="finish_job" class="btn btn-success px-4 py-3 fw-bold" style="border-radius: 12px;">
+                                <button type="submit" name="finish_job" value="1" class="btn btn-success px-4 py-3 fw-bold" style="border-radius: 12px;">
                                     <i class="fas fa-check-double me-1"></i><?php echo $t['driver_finish'] ?? 'Finish'; ?>
                                 </button>
                             </form>
