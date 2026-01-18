@@ -681,9 +681,14 @@ $text = [
         'no_phone' => 'لا يوجد هاتف',
         'update_order' => 'تحديث الطلب',
 
-        // Districts
+        // Districts and Delivery Fees
         'select_district' => 'اختر المقاطعة',
         'district' => 'المقاطعة',
+        'pickup_district' => 'مقاطعة الاستلام (من)',
+        'delivery_district' => 'مقاطعة التوصيل (إلى)',
+        'delivery_fee' => 'رسوم التوصيل',
+        'from' => 'من',
+        'to' => 'إلى',
         'detailed_address' => 'العنوان التفصيلي',
         'detailed_address_placeholder' => 'أدخل عنوانك بالتفصيل (الشارع، المبنى، معلم قريب...)',
         'district_required' => 'يرجى اختيار المقاطعة',
@@ -703,7 +708,21 @@ $text = [
         'district_activated' => 'تم تفعيل المقاطعة',
         'district_deactivated' => 'تم إيقاف المقاطعة',
         'no_districts' => 'لا توجد مقاطعات',
-        'save_districts' => 'حفظ المقاطعات'
+        'save_districts' => 'حفظ المقاطعات',
+        
+        // Cancel Order
+        'cancel_order' => 'إلغاء الطلب',
+        'cannot_cancel' => 'لا يمكن الإلغاء - السائق استلم الطلب',
+        'order_cancelled' => 'تم إلغاء الطلب',
+        'confirm_cancel' => 'هل تريد إلغاء الطلب؟',
+        'cancel_before_pickup' => 'يمكنك الإلغاء قبل استلام السائق',
+        'err_cannot_cancel' => 'لا يمكن إلغاء الطلب (السائق استلم الطلب)',
+        
+        // Driver Info
+        'your_driver' => 'السائق',
+        'call' => 'اتصال',
+        'delivery_code' => 'رمز التوصيل',
+        'give_code_to_driver' => 'أعط هذا الرمز للسائق',
     ],
 
     'fr' => [
@@ -1059,9 +1078,14 @@ $text = [
         'no_phone' => 'Pas de téléphone',
         'update_order' => 'Mettre à jour',
 
-        // Districts
+        // Districts and Delivery Fees
         'select_district' => 'Sélectionner la commune',
         'district' => 'Commune',
+        'pickup_district' => 'Commune de ramassage (De)',
+        'delivery_district' => 'Commune de livraison (À)',
+        'delivery_fee' => 'Frais de livraison',
+        'from' => 'De',
+        'to' => 'À',
         'detailed_address' => 'Adresse détaillée',
         'detailed_address_placeholder' => 'Entrez votre adresse détaillée (rue, immeuble, repère...)',
         'district_required' => 'Veuillez sélectionner une commune',
@@ -1081,7 +1105,21 @@ $text = [
         'district_activated' => 'Commune activée',
         'district_deactivated' => 'Commune désactivée',
         'no_districts' => 'Aucune commune',
-        'save_districts' => 'Enregistrer les communes'
+        'save_districts' => 'Enregistrer les communes',
+        
+        // Cancel Order
+        'cancel_order' => 'Annuler',
+        'cannot_cancel' => 'Impossible - chauffeur a récupéré',
+        'order_cancelled' => 'Commande annulée',
+        'confirm_cancel' => 'Annuler cette commande?',
+        'cancel_before_pickup' => 'Annulation possible avant ramassage',
+        'err_cannot_cancel' => 'Impossible d\'annuler (chauffeur a récupéré)',
+        
+        // Driver Info
+        'your_driver' => 'Votre chauffeur',
+        'call' => 'Appeler',
+        'delivery_code' => 'Code de livraison',
+        'give_code_to_driver' => 'Donnez ce code au chauffeur',
     ]
 ];
 $t = $text[$lang];
