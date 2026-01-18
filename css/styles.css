@@ -2490,9 +2490,11 @@
             transition: 0.3s;
             pointer-events: none; /* Ensure clicks pass through to the button */
         }
+        /* Ensure icons and common elements inside slider-thumb allow clicks to pass through */
         .slider-thumb i,
-        .slider-thumb * {
-            pointer-events: none; /* Ensure all children allow clicks to pass through */
+        .slider-thumb svg,
+        .slider-thumb span {
+            pointer-events: none;
         }
         [dir="rtl"] .slider-thumb { right: auto; left: 4px; }
         .slider-btn-container:active .slider-thumb {
