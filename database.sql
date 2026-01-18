@@ -51,11 +51,9 @@ CREATE TABLE IF NOT EXISTS orders1 (
     details TEXT NOT NULL COMMENT 'Order details/items',
     address VARCHAR(255) NOT NULL COMMENT 'Delivery address',
     client_phone VARCHAR(20) DEFAULT NULL COMMENT 'Customer phone number',
-    pickup_lat DECIMAL(10,8) DEFAULT NULL,
-    pickup_lng DECIMAL(11,8) DEFAULT NULL,
-    dropoff_lat DECIMAL(10,8) DEFAULT NULL,
-    dropoff_lng DECIMAL(11,8) DEFAULT NULL,
-    distance_km DECIMAL(6,2) DEFAULT NULL,
+    pickup_zone VARCHAR(50) DEFAULT NULL COMMENT 'Pickup zone/moughataa',
+    dropoff_zone VARCHAR(50) DEFAULT NULL COMMENT 'Dropoff zone/moughataa',
+    delivery_price INT DEFAULT 0 COMMENT 'Calculated delivery price in MRU',
     status ENUM('pending','accepted','picked_up','delivered','cancelled') DEFAULT 'pending',
     driver_id INT DEFAULT NULL COMMENT 'Assigned driver users1.id',
     delivery_code VARCHAR(10) DEFAULT NULL COMMENT '4-digit PIN for delivery verification',
@@ -74,7 +72,9 @@ CREATE TABLE IF NOT EXISTS orders1 (
     INDEX idx_driver (driver_id),
     INDEX idx_client (client_id),
     INDEX idx_customer (customer_name),
-    INDEX idx_created (created_at)
+    INDEX idx_created (created_at),
+    INDEX idx_pickup_zone (pickup_zone),
+    INDEX idx_dropoff_zone (dropoff_zone)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================

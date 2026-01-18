@@ -1194,9 +1194,29 @@ require_once 'actions.php';
                                     <label class="form-label"><?php echo $t['order_details']; ?></label>
                                     <textarea name="details" class="form-control" rows="3" required></textarea>
                                 </div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label"><?php echo $t['pickup_zone'] ?? 'Pickup Zone'; ?></label>
+                                        <select name="pickup_zone" class="form-select" required>
+                                            <option value=""><?php echo $t['select_zone'] ?? 'Select zone'; ?></option>
+                                            <?php foreach($zones as $key => $name): ?>
+                                            <option value="<?php echo e($key); ?>"><?php echo ($lang == 'ar') ? $name : $key; ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label"><?php echo $t['dropoff_zone'] ?? 'Dropoff Zone'; ?></label>
+                                        <select name="dropoff_zone" class="form-select" required>
+                                            <option value=""><?php echo $t['select_zone'] ?? 'Select zone'; ?></option>
+                                            <?php foreach($zones as $key => $name): ?>
+                                            <option value="<?php echo e($key); ?>"><?php echo ($lang == 'ar') ? $name : $key; ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['address']; ?></label>
-                                    <input type="text" name="address" class="form-control" required>
+                                    <input type="text" name="address" class="form-control" placeholder="<?php echo $t['address_placeholder'] ?? 'Optional detailed address'; ?>">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label"><?php echo $t['status']; ?></label>
@@ -1406,7 +1426,7 @@ require_once 'actions.php';
                     <div class="card-inner">
                         <div class="row g-3">
                             <!-- Online/Offline Toggle -->
-                            <div class="col-6">
+                            <div class="col-12">
                                 <div class="driver-control-btn <?php echo ($u['is_online'] ?? 0) ? 'active' : ''; ?>" onclick="document.getElementById('onlineSwitch').checked = !document.getElementById('onlineSwitch').checked; document.getElementById('onlineToggleForm').submit();">
                                     <div class="control-icon <?php echo ($u['is_online'] ?? 0) ? 'online' : 'offline'; ?>">
                                         <i class="fas fa-power-off"></i>
@@ -1417,36 +1437,10 @@ require_once 'actions.php';
                                     </div>
                                 </div>
                             </div>
-                            <!-- GPS Toggle -->
-                            <div class="col-6">
-                                <div class="driver-control-btn" id="gpsControlBtn" onclick="toggleDriverGPS()">
-                                    <div class="control-icon gps-off" id="gpsControlIcon">
-                                        <i class="fas fa-location-crosshairs"></i>
-                                    </div>
-                                    <div class="control-info">
-                                        <span class="control-label" id="gpsControlLabel"><?php echo $t['gps_disabled'] ?? 'GPS Off'; ?></span>
-                                        <small class="control-hint" id="gpsControlHint"><?php echo $t['tap_to_enable_gps'] ?? 'Tap to enable GPS'; ?></small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- GPS Accuracy Badge -->
-                        <div class="gps-status-bar mt-3" id="gpsStatusBar" style="display: none;">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="text-success small"><i class="fas fa-satellite-dish me-1"></i><span id="gpsStatusText"><?php echo $t['location_active'] ?? 'Location active'; ?></span></span>
-                                <span class="badge bg-light text-dark" id="gpsAccuracyBadge" style="display: none;">
-                                    <i class="fas fa-signal me-1"></i><span id="gpsAccuracyValue">--</span>m
-                                </span>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Hidden elements for GPS toggle -->
-            <div id="gpsToggle" style="display:none;"></div>
-            <div id="gpsStatusLabel" style="display:none;"></div>
-            <div id="gpsStatusDetail" style="display:none;"></div>
 
             <!-- Online Toggle Form (Hidden) -->
             <form method="POST" id="onlineToggleForm" style="display:none;">
@@ -1546,20 +1540,47 @@ require_once 'actions.php';
                                 </div>
                             </div>
 
-                            <div class="mb-4">
-                                <label class="form-label small text-muted mb-1">
-                                    <i class="fas fa-map-marker-alt me-1 text-danger"></i><?php echo $t['pickup_location'] ?? 'Pickup Location'; ?>
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" name="address" id="pickupAddress" class="form-control"
-                                           placeholder="<?php echo $t['click_gps'] ?? 'Click GPS to set your location'; ?>" readonly>
-                                    <button type="button" class="btn btn-success px-4" onclick="getPickupLocation()" id="gpsBtn" title="<?php echo $t['turn_on_gps'] ?? 'Turn on GPS'; ?>">
-                                        <i class="fas fa-location-crosshairs"></i>
-                                    </button>
+                            <!-- Zone Selection -->
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label small text-muted mb-1">
+                                        <i class="fas fa-map-marker-alt me-1 text-success"></i><?php echo $t['pickup_zone'] ?? 'Pickup Zone'; ?>
+                                    </label>
+                                    <select name="pickup_zone" id="pickupZone" class="form-select" required onchange="calculateDeliveryPrice()">
+                                        <option value=""><?php echo $t['select_zone'] ?? 'Select zone'; ?></option>
+                                        <?php foreach($zones as $key => $name): ?>
+                                        <option value="<?php echo e($key); ?>"><?php echo ($lang == 'ar') ? $name : $key; ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
-                                <input type="hidden" name="pickup_lat" id="pickupLat">
-                                <input type="hidden" name="pickup_lng" id="pickupLng">
-                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['gps_required'] ?? 'GPS location is required for drivers to find you'; ?></small>
+                                <div class="col-6">
+                                    <label class="form-label small text-muted mb-1">
+                                        <i class="fas fa-map-marker-alt me-1 text-danger"></i><?php echo $t['dropoff_zone'] ?? 'Dropoff Zone'; ?>
+                                    </label>
+                                    <select name="dropoff_zone" id="dropoffZone" class="form-select" required onchange="calculateDeliveryPrice()">
+                                        <option value=""><?php echo $t['select_zone'] ?? 'Select zone'; ?></option>
+                                        <?php foreach($zones as $key => $name): ?>
+                                        <option value="<?php echo e($key); ?>"><?php echo ($lang == 'ar') ? $name : $key; ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Delivery Price Display -->
+                            <div class="mb-3" id="deliveryPriceContainer" style="display: none;">
+                                <div class="alert alert-info py-2 px-3 mb-0">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-money-bill-wave me-2"></i><?php echo $t['delivery_price'] ?? 'Delivery Price'; ?>:</span>
+                                        <strong id="deliveryPriceDisplay">0 <?php echo $t['mru'] ?? 'MRU'; ?></strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small text-muted mb-1">
+                                    <i class="fas fa-home me-1"></i><?php echo $t['address'] ?? 'Address'; ?> <span class="text-muted">(<?php echo $t['optional'] ?? 'Optional'; ?>)</span>
+                                </label>
+                                <input type="text" name="address" class="form-control" placeholder="<?php echo $t['address_placeholder'] ?? 'Detailed address (optional)'; ?>">
                             </div>
 
                             <div class="mb-4">
@@ -1597,30 +1618,17 @@ require_once 'actions.php';
             <!-- ORDERS AS ULTRA CARDS -->
             <div class="orders-container" id="ordersContainer">
                 <?php
-                // Get driver's location for distance filtering
-                $driverLat = $u['last_lat'] ?? null;
-                $driverLng = $u['last_lng'] ?? null;
-                $maxDistance = 7; // 7km radius for drivers
-
+                // Zone-based order filtering (no GPS)
                 if($role == 'driver') {
-                    if ($driverLat && $driverLng) {
-                        $sql = "SELECT *,
-                                (6371 * acos(cos(radians(?)) * cos(radians(pickup_lat)) * cos(radians(pickup_lng) - radians(?)) + sin(radians(?)) * sin(radians(pickup_lat)))) AS distance
-                                FROM orders1
-                                WHERE (driver_id = ? AND status IN ('accepted', 'picked_up'))
-                                OR (status = 'pending' AND pickup_lat IS NOT NULL
-                                    AND (6371 * acos(cos(radians(?)) * cos(radians(pickup_lat)) * cos(radians(pickup_lng) - radians(?)) + sin(radians(?)) * sin(radians(pickup_lat)))) <= ?)
-                                ORDER BY CASE WHEN driver_id = ? THEN 0 ELSE 1 END, distance ASC, id DESC
-                                LIMIT 50";
-                        $stmt = $conn->prepare($sql);
-                        $stmt->execute([$driverLat, $driverLng, $driverLat, $uid, $driverLat, $driverLng, $driverLat, $maxDistance, $uid]);
-                        $res = $stmt;
-                    } else {
-                        $sql = "SELECT * FROM orders1 WHERE driver_id = ? AND status IN ('accepted', 'picked_up') ORDER BY id DESC LIMIT 50";
-                        $stmt = $conn->prepare($sql);
-                        $stmt->execute([$uid]);
-                        $res = $stmt;
-                    }
+                    // Show driver's active orders AND all pending orders
+                    $sql = "SELECT * FROM orders1
+                            WHERE (driver_id = ? AND status IN ('accepted', 'picked_up'))
+                            OR status = 'pending'
+                            ORDER BY CASE WHEN driver_id = ? THEN 0 ELSE 1 END, id DESC
+                            LIMIT 50";
+                    $stmt = $conn->prepare($sql);
+                    $stmt->execute([$uid, $uid]);
+                    $res = $stmt;
                 } elseif($role == 'customer') {
                     $sql = "SELECT * FROM orders1 WHERE customer_name = ? OR client_id = ? ORDER BY id DESC LIMIT 50";
                     $stmt = $conn->prepare($sql);
@@ -1631,32 +1639,21 @@ require_once 'actions.php';
                     $res = $conn->query($sql);
                 }
 
-                if($role == 'driver' && !$driverLat):
-                ?>
-                <div class="ultra-card">
-                    <div class="card-inner">
-                        <div class="text-center py-4">
-                            <i class="fas fa-location-crosshairs fa-3x text-warning mb-3"></i>
-                            <h5 class="fw-bold"><?php echo $t['enable_gps'] ?? 'Enable GPS to see nearby orders'; ?></h5>
-                            <p class="text-muted small"><?php echo $t['gps_driver_note'] ?? 'Turn on your GPS to find orders within 7km of your location'; ?></p>
-                        </div>
-                    </div>
-                </div>
-                <?php endif;
-
                 if($res->rowCount() == 0): ?>
                 <div class="ultra-card">
                     <div class="card-inner text-center py-5">
                         <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted"><?php echo $t['no_orders']; ?></h5>
                         <p class="text-muted small mb-0">
-                            <?php echo ($role == 'driver') ? ($driverLat ? $t['no_nearby_orders'] ?? 'No orders nearby (7km radius)' : $t['enable_gps_first'] ?? 'Enable GPS first') : $t['check_back_later']; ?>
+                            <?php echo $t['check_back_later']; ?>
                         </p>
                     </div>
                 </div>
                 <?php else: while($row = $res->fetch()):
                     $st = $row['status'];
-                    $orderDistance = isset($row['distance']) ? round($row['distance'], 1) : null;
+                    $pickupZone = $row['pickup_zone'] ?? '';
+                    $dropoffZone = $row['dropoff_zone'] ?? '';
+                    $deliveryPrice = $row['delivery_price'] ?? 0;
                     $statusTagClass = ($st == 'pending') ? 'tag-pending' : (($st == 'accepted') ? 'tag-accepted' : (($st == 'picked_up') ? 'tag-picked' : (($st == 'cancelled') ? 'tag-cancelled' : 'tag-delivered')));
                 ?>
                 <div class="ultra-card">
@@ -1666,7 +1663,7 @@ require_once 'actions.php';
                             <div class="price-tag">
                                 #<?php echo $row['id']; ?>
                             </div>
-                            <div class="time-tag <?php echo ($orderDistance && $orderDistance < 3) ? '' : 'blue'; ?>">
+                            <div class="time-tag blue">
                                 <i class="fa-regular fa-clock"></i>
                                 <?php echo fmtDate($row['created_at']); ?>
                             </div>
@@ -1678,49 +1675,28 @@ require_once 'actions.php';
                                 <i class="fas fa-<?php echo getStatusIcon($st); ?>"></i>
                                 <?php echo $t['st_'.$st] ?? ucfirst($st); ?>
                             </div>
-                            <?php if($role == 'driver' && $st == 'pending' && $orderDistance !== null): ?>
+                            <?php if($deliveryPrice > 0): ?>
                             <div class="tag-new tag-accepted">
-                                <i class="fas fa-route"></i>
-                                <?php echo $orderDistance; ?> <?php echo $t['km'] ?? 'km'; ?>
-                            </div>
-                            <?php endif; ?>
-                            <?php if($st != 'pending' && $st != 'cancelled' && !empty($row['distance_km'])): ?>
-                            <div class="tag-new tag-accepted">
-                                <i class="fas fa-route"></i>
-                                <?php echo number_format($row['distance_km'], 1); ?> <?php echo $t['km'] ?? 'km'; ?>
-                            </div>
-                            <div class="tag-new tag-pending">
-                                <i class="fas fa-clock"></i>
-                                ~<?php echo ceil($row['distance_km'] / 25 * 60); ?> <?php echo $t['min'] ?? 'min'; ?>
+                                <i class="fas fa-money-bill-wave"></i>
+                                <?php echo $deliveryPrice; ?> <?php echo $t['mru'] ?? 'MRU'; ?>
                             </div>
                             <?php endif; ?>
                         </div>
 
-                        <?php if($st != 'pending' && $st != 'cancelled' && $st != 'delivered' && !empty($row['distance_km'])): ?>
-                        <!-- Distance/Time Info -->
-                        <div class="order-distance-info">
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <div class="distance-item">
-                                        <div class="distance-icon route">
-                                            <i class="fas fa-route"></i>
-                                        </div>
-                                        <div>
-                                            <div class="distance-value"><?php echo number_format($row['distance_km'], 1); ?> km</div>
-                                            <div class="distance-label"><?php echo $t['distance'] ?? 'Distance'; ?></div>
-                                        </div>
-                                    </div>
+                        <?php if($pickupZone && $dropoffZone): ?>
+                        <!-- Zone Info -->
+                        <div class="order-zone-info mb-3">
+                            <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded">
+                                <div class="text-center flex-grow-1">
+                                    <i class="fas fa-map-marker-alt text-success"></i>
+                                    <span class="small fw-bold"><?php echo ($lang == 'ar' && isset($zones[$pickupZone])) ? $zones[$pickupZone] : e($pickupZone); ?></span>
                                 </div>
-                                <div class="col-6">
-                                    <div class="distance-item">
-                                        <div class="distance-icon time">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                        <div>
-                                            <div class="distance-value">~<?php echo ceil($row['distance_km'] / 25 * 60); ?> min</div>
-                                            <div class="distance-label"><?php echo $t['estimated_time'] ?? 'Est. Time'; ?></div>
-                                        </div>
-                                    </div>
+                                <div class="px-2">
+                                    <i class="fas fa-arrow-<?php echo $dir == 'rtl' ? 'left' : 'right'; ?> text-muted"></i>
+                                </div>
+                                <div class="text-center flex-grow-1">
+                                    <i class="fas fa-map-marker-alt text-danger"></i>
+                                    <span class="small fw-bold"><?php echo ($lang == 'ar' && isset($zones[$dropoffZone])) ? $zones[$dropoffZone] : e($dropoffZone); ?></span>
                                 </div>
                             </div>
                         </div>
@@ -2005,37 +1981,46 @@ const AppTranslations = {
     // Time/Distance translations
     km: '<?php echo $t['km'] ?? 'km'; ?>',
     min: '<?php echo $t['min'] ?? 'min'; ?>',
-    driver_assigned: '<?php echo $t['driver_assigned'] ?? 'Driver assigned'; ?>'
+    driver_assigned: '<?php echo $t['driver_assigned'] ?? 'Driver assigned'; ?>',
+
+    // Zone translations
+    mru: '<?php echo $t['mru'] ?? 'MRU'; ?>'
 };
 
 const AppConfig = {
     lang: '<?php echo $lang; ?>',
     userRole: '<?php echo isset($_SESSION['user']) ? $role : ''; ?>',
-    isLoggedIn: <?php echo isset($_SESSION['user']) ? 'true' : 'false'; ?>,
-    hasExistingLocation: <?php echo (isset($_SESSION['user']) && $role === 'driver' && !empty($u['last_lat']) && !empty($u['last_lng'])) ? 'true' : 'false'; ?>
+    isLoggedIn: <?php echo isset($_SESSION['user']) ? 'true' : 'false'; ?>
 };
 
-// Override functions that need translations
-window.getPickupLocation = function() {
-    _getPickupLocation(AppTranslations, AppConfig.lang);
-};
+// Zone price matrix for client-side calculation
+const zonePrices = <?php echo json_encode($zone_prices); ?>;
 
-window.toggleDriverGPS = function() {
-    _toggleDriverGPS(AppTranslations);
-};
+// Calculate delivery price based on selected zones
+function calculateDeliveryPrice() {
+    const pickupZone = document.getElementById('pickupZone')?.value;
+    const dropoffZone = document.getElementById('dropoffZone')?.value;
+    const priceContainer = document.getElementById('deliveryPriceContainer');
+    const priceDisplay = document.getElementById('deliveryPriceDisplay');
 
-window.acceptOrderFromBubble = function(orderId, btn) {
-    _acceptOrderFromBubble(orderId, btn, AppTranslations);
-};
+    if (!pickupZone || !dropoffZone || !priceContainer || !priceDisplay) return;
+
+    // Find price in matrix
+    let price = 150; // default
+    for (const route of zonePrices) {
+        if (route.from === pickupZone && route.to === dropoffZone) {
+            price = route.price;
+            break;
+        }
+    }
+
+    priceDisplay.textContent = price + ' ' + AppTranslations.mru;
+    priceContainer.style.display = 'block';
+}
 
 window.showOrderTracking = function(order) {
     _showOrderTracking(order, AppTranslations);
 };
-
-<?php if(isset($_SESSION['user']) && $role === 'driver'): ?>
-// Initialize driver features
-initDriverFeatures(AppTranslations, AppConfig.hasExistingLocation);
-<?php endif; ?>
 
 <?php if(isset($_SESSION['user']) && !isset($_GET['settings'])): ?>
 // Initialize real-time polling

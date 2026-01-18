@@ -311,13 +311,26 @@ if (isset($_SESSION['user'])) {
         if (isset($_POST['admin_add_order'])) {
             $customer_name = trim($_POST['customer_name']);
             $details = mb_convert_encoding(trim($_POST['details']), 'UTF-8', 'UTF-8');
-            $address = mb_convert_encoding(trim($_POST['address']), 'UTF-8', 'UTF-8');
+            $address = mb_convert_encoding(trim($_POST['address'] ?? ''), 'UTF-8', 'UTF-8');
             $status = $_POST['status'];
             $driver_id = !empty($_POST['driver_id']) ? (int)$_POST['driver_id'] : NULL;
+            $pickup_zone = trim($_POST['pickup_zone'] ?? '');
+            $dropoff_zone = trim($_POST['dropoff_zone'] ?? '');
             $otp = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
 
-            $stmt = $conn->prepare("INSERT INTO orders1 (customer_name, details, address, status, driver_id, delivery_code, points_cost) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$customer_name, $details, $address, $status, $driver_id, $otp, $points_cost_per_order]);
+            // Calculate delivery price
+            $delivery_price = getZonePrice($pickup_zone, $dropoff_zone);
+
+            // Set address to zone info if not provided
+            if (empty($address)) {
+                global $zones, $lang;
+                $pickup_name = ($lang == 'ar' && isset($zones[$pickup_zone])) ? $zones[$pickup_zone] : $pickup_zone;
+                $dropoff_name = ($lang == 'ar' && isset($zones[$dropoff_zone])) ? $zones[$dropoff_zone] : $dropoff_zone;
+                $address = $pickup_name . ' → ' . $dropoff_name;
+            }
+
+            $stmt = $conn->prepare("INSERT INTO orders1 (customer_name, details, address, pickup_zone, dropoff_zone, delivery_price, status, driver_id, delivery_code, points_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$customer_name, $details, $address, $pickup_zone, $dropoff_zone, $delivery_price, $status, $driver_id, $otp, $points_cost_per_order]);
             setFlash('success', 'Order added successfully');
             header("Location: index.php");
             exit();
@@ -374,6 +387,10 @@ if (isset($_SESSION['user'])) {
         $address = mb_convert_encoding(trim($_POST['address'] ?? $u['address'] ?? ''), 'UTF-8', 'UTF-8');
         $client_phone = preg_replace('/[^0-9]/', '', $_POST['client_phone'] ?? '');
 
+        // Zone-based delivery
+        $pickup_zone = trim($_POST['pickup_zone'] ?? '');
+        $dropoff_zone = trim($_POST['dropoff_zone'] ?? '');
+
         // Validate order details
         if (empty($details) || strlen($details) < 3) {
             setFlash('error', $t['details_required'] ?? 'Please provide order details (minimum 3 characters)');
@@ -381,23 +398,15 @@ if (isset($_SESSION['user'])) {
             exit();
         }
 
-        // GPS pickup coordinates
-        $pickup_lat = !empty($_POST['pickup_lat']) ? floatval($_POST['pickup_lat']) : null;
-        $pickup_lng = !empty($_POST['pickup_lng']) ? floatval($_POST['pickup_lng']) : null;
-
-        // Validate GPS location is provided
-        if (!$pickup_lat || !$pickup_lng) {
-            setFlash('error', $t['gps_required'] ?? 'Please set your GPS location for pickup');
+        // Validate zones
+        if (empty($pickup_zone) || empty($dropoff_zone)) {
+            setFlash('error', $t['zone_required'] ?? 'Please select pickup and dropoff zones');
             header("Location: index.php");
             exit();
         }
 
-        // Validate GPS coordinates are within valid ranges
-        if ($pickup_lat < -90 || $pickup_lat > 90 || $pickup_lng < -180 || $pickup_lng > 180) {
-            setFlash('error', $t['invalid_gps'] ?? 'Invalid GPS coordinates. Please try again.');
-            header("Location: index.php");
-            exit();
-        }
+        // Calculate delivery price based on zones
+        $delivery_price = getZonePrice($pickup_zone, $dropoff_zone);
 
         // Validate phone number (Mauritanian format: 8 digits)
         if (!empty($client_phone) && strlen($client_phone) != 8) {
@@ -457,15 +466,12 @@ if (isset($_SESSION['user'])) {
                 }
 
                 if ($is_valid) {
-                    // Calculate discount (we'll assume base order cost for percentage calculation)
-                    // For fixed, just use the value
+                    // Calculate discount based on delivery price
                     if ($promo['discount_type'] == 'fixed') {
-                        $discount_amount = $promo['discount_value'];
+                        $discount_amount = min($promo['discount_value'], $delivery_price);
                     } else {
-                        // For percentage, calculate based on points_cost_per_order or fixed base price
-                        // Assuming 1 point = 1 MRU for simplicity
-                        $base_price = $points_cost_per_order; // or use a fixed value
-                        $discount_amount = ($base_price * $promo['discount_value']) / 100;
+                        // Percentage discount
+                        $discount_amount = ($delivery_price * $promo['discount_value']) / 100;
                     }
 
                     $promo_id = $promo['id'];
@@ -476,15 +482,24 @@ if (isset($_SESSION['user'])) {
         if ($details) {
             $otp = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
 
-            $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, client_phone, pickup_lat, pickup_lng, status, delivery_code, points_cost, promo_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)");
+            // Set address to zone info if not provided
+            if (empty($address)) {
+                global $zones, $lang;
+                $pickup_name = ($lang == 'ar' && isset($zones[$pickup_zone])) ? $zones[$pickup_zone] : $pickup_zone;
+                $dropoff_name = ($lang == 'ar' && isset($zones[$dropoff_zone])) ? $zones[$dropoff_zone] : $dropoff_zone;
+                $address = $pickup_name . ' → ' . $dropoff_name;
+            }
+
+            $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, client_phone, pickup_zone, dropoff_zone, delivery_price, status, delivery_code, points_cost, promo_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)");
             $stmt->execute([
                 $uid,
                 $u['username'],
                 $details,
-                $address ?: 'GPS Location',
+                $address,
                 $client_phone ?: $u['phone'],
-                $pickup_lat,
-                $pickup_lng,
+                $pickup_zone,
+                $dropoff_zone,
+                $delivery_price,
                 $otp,
                 $points_cost_per_order,
                 $promo_code,
@@ -604,33 +619,9 @@ if (isset($_SESSION['user'])) {
                 $order = $chk->fetch();
 
                 if ($order) {
-                    // Get order pickup location and driver location to calculate distance
-                    $orderInfo = $conn->prepare("SELECT pickup_lat, pickup_lng FROM orders1 WHERE id=?");
-                    $orderInfo->execute([$oid]);
-                    $orderLoc = $orderInfo->fetch();
-
-                    $driverInfo = $conn->prepare("SELECT last_lat, last_lng FROM users1 WHERE id=?");
-                    $driverInfo->execute([$uid]);
-                    $driverLoc = $driverInfo->fetch();
-
-                    // Calculate distance if both locations are available
-                    $distance_km = null;
-                    if ($orderLoc && $driverLoc && !empty($orderLoc['pickup_lat']) && !empty($driverLoc['last_lat'])) {
-                        $lat1 = deg2rad($driverLoc['last_lat']);
-                        $lon1 = deg2rad($driverLoc['last_lng']);
-                        $lat2 = deg2rad($orderLoc['pickup_lat']);
-                        $lon2 = deg2rad($orderLoc['pickup_lng']);
-
-                        $dlat = $lat2 - $lat1;
-                        $dlon = $lon2 - $lon1;
-                        $a = sin($dlat/2) * sin($dlat/2) + cos($lat1) * cos($lat2) * sin($dlon/2) * sin($dlon/2);
-                        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
-                        $distance_km = round(6371 * $c, 2); // Earth radius in km
-                    }
-
-                    // Update order with distance
-                    $upd = $conn->prepare("UPDATE orders1 SET status='accepted', driver_id=?, accepted_at=NOW(), points_cost=?, distance_km=? WHERE id=?");
-                    $upd->execute([$uid, $points_cost_per_order, $distance_km, $oid]);
+                    // Update order
+                    $upd = $conn->prepare("UPDATE orders1 SET status='accepted', driver_id=?, accepted_at=NOW(), points_cost=? WHERE id=?");
+                    $upd->execute([$uid, $points_cost_per_order, $oid]);
 
                     // Deduct points from driver
                     $deduct = $conn->prepare("UPDATE users1 SET points = points - ?, total_orders = total_orders + 1 WHERE id=?");

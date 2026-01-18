@@ -679,7 +679,18 @@ $text = [
         'accept' => 'قبول',
         'decline' => 'رفض',
         'no_phone' => 'لا يوجد هاتف',
-        'update_order' => 'تحديث الطلب'
+        'update_order' => 'تحديث الطلب',
+
+        // Zone System
+        'pickup_zone' => 'منطقة الاستلام',
+        'dropoff_zone' => 'منطقة التوصيل',
+        'select_zone' => 'اختر المنطقة',
+        'delivery_price' => 'سعر التوصيل',
+        'price' => 'السعر',
+        'mru' => 'أوقية',
+        'from_zone' => 'من',
+        'to_zone' => 'إلى',
+        'zone_required' => 'يرجى اختيار منطقة الاستلام والتوصيل'
     ],
 
     'fr' => [
@@ -1033,7 +1044,18 @@ $text = [
         'accept' => 'Accepter',
         'decline' => 'Refuser',
         'no_phone' => 'Pas de téléphone',
-        'update_order' => 'Mettre à jour'
+        'update_order' => 'Mettre à jour',
+
+        // Zone System
+        'pickup_zone' => 'Zone de ramassage',
+        'dropoff_zone' => 'Zone de livraison',
+        'select_zone' => 'Sélectionner la zone',
+        'delivery_price' => 'Prix de livraison',
+        'price' => 'Prix',
+        'mru' => 'MRU',
+        'from_zone' => 'De',
+        'to_zone' => 'À',
+        'zone_required' => 'Veuillez sélectionner les zones de ramassage et de livraison'
     ]
 ];
 $t = $text[$lang];

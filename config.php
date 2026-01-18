@@ -32,8 +32,139 @@ $help_phone = "+222 41 31 29 31";
 $points_cost_per_order = 20;
 $driver_max_active_orders = 2;        // Max concurrent orders per driver
 $order_expiry_hours = 3;              // Orders expire after 3 hours without acceptance
-$driver_search_radius_km = 10;        // Radius to search for drivers
 $uploads_dir = __DIR__ . '/uploads';  // Profile pictures directory
+
+// ==========================================
+// NOUAKCHOTT ZONES (Moughataas)
+// ==========================================
+$zones = [
+    'Tevragh Zeina' => 'تفرغ زينة',
+    'Ksar' => 'لكصر',
+    'Sebkha' => 'السبخة',
+    'Teyarett' => 'تيارت',
+    'Dar Naïm' => 'دار النعيم',
+    'Toujounine' => 'توجنين',
+    'Arafat' => 'عرفات',
+    'El Mina' => 'الميناء',
+    'Riyad' => 'الرياض'
+];
+
+// ==========================================
+// ZONE PRICE MATRIX (MRU)
+// ==========================================
+$zone_prices = [
+    // --- تفرغ زينة (Tevragh Zeina) ---
+    ['from' => 'Tevragh Zeina', 'to' => 'Tevragh Zeina', 'price' => 100],
+    ['from' => 'Tevragh Zeina', 'to' => 'Ksar', 'price' => 100],
+    ['from' => 'Tevragh Zeina', 'to' => 'Sebkha', 'price' => 100],
+    ['from' => 'Tevragh Zeina', 'to' => 'El Mina', 'price' => 150],
+    ['from' => 'Tevragh Zeina', 'to' => 'Arafat', 'price' => 150],
+    ['from' => 'Tevragh Zeina', 'to' => 'Teyarett', 'price' => 150],
+    ['from' => 'Tevragh Zeina', 'to' => 'Dar Naïm', 'price' => 200],
+    ['from' => 'Tevragh Zeina', 'to' => 'Toujounine', 'price' => 200],
+    ['from' => 'Tevragh Zeina', 'to' => 'Riyad', 'price' => 200],
+
+    // --- لكصر (Ksar) ---
+    ['from' => 'Ksar', 'to' => 'Ksar', 'price' => 100],
+    ['from' => 'Ksar', 'to' => 'Tevragh Zeina', 'price' => 100],
+    ['from' => 'Ksar', 'to' => 'Teyarett', 'price' => 100],
+    ['from' => 'Ksar', 'to' => 'Dar Naïm', 'price' => 100],
+    ['from' => 'Ksar', 'to' => 'Sebkha', 'price' => 100],
+    ['from' => 'Ksar', 'to' => 'Toujounine', 'price' => 150],
+    ['from' => 'Ksar', 'to' => 'Arafat', 'price' => 150],
+    ['from' => 'Ksar', 'to' => 'El Mina', 'price' => 150],
+    ['from' => 'Ksar', 'to' => 'Riyad', 'price' => 200],
+
+    // --- السبخة (Sebkha) ---
+    ['from' => 'Sebkha', 'to' => 'Sebkha', 'price' => 100],
+    ['from' => 'Sebkha', 'to' => 'El Mina', 'price' => 100],
+    ['from' => 'Sebkha', 'to' => 'Tevragh Zeina', 'price' => 100],
+    ['from' => 'Sebkha', 'to' => 'Ksar', 'price' => 100],
+    ['from' => 'Sebkha', 'to' => 'Arafat', 'price' => 150],
+    ['from' => 'Sebkha', 'to' => 'Riyad', 'price' => 150],
+    ['from' => 'Sebkha', 'to' => 'Teyarett', 'price' => 200],
+    ['from' => 'Sebkha', 'to' => 'Dar Naïm', 'price' => 200],
+    ['from' => 'Sebkha', 'to' => 'Toujounine', 'price' => 200],
+
+    // --- تيارت (Teyarett) ---
+    ['from' => 'Teyarett', 'to' => 'Teyarett', 'price' => 100],
+    ['from' => 'Teyarett', 'to' => 'Dar Naïm', 'price' => 100],
+    ['from' => 'Teyarett', 'to' => 'Ksar', 'price' => 100],
+    ['from' => 'Teyarett', 'to' => 'Tevragh Zeina', 'price' => 150],
+    ['from' => 'Teyarett', 'to' => 'Toujounine', 'price' => 150],
+    ['from' => 'Teyarett', 'to' => 'Sebkha', 'price' => 200],
+    ['from' => 'Teyarett', 'to' => 'Arafat', 'price' => 200],
+    ['from' => 'Teyarett', 'to' => 'El Mina', 'price' => 200],
+    ['from' => 'Teyarett', 'to' => 'Riyad', 'price' => 200],
+
+    // --- دار النعيم (Dar Naïm) ---
+    ['from' => 'Dar Naïm', 'to' => 'Dar Naïm', 'price' => 100],
+    ['from' => 'Dar Naïm', 'to' => 'Teyarett', 'price' => 100],
+    ['from' => 'Dar Naïm', 'to' => 'Toujounine', 'price' => 100],
+    ['from' => 'Dar Naïm', 'to' => 'Ksar', 'price' => 100],
+    ['from' => 'Dar Naïm', 'to' => 'Arafat', 'price' => 150],
+    ['from' => 'Dar Naïm', 'to' => 'Tevragh Zeina', 'price' => 200],
+    ['from' => 'Dar Naïm', 'to' => 'Sebkha', 'price' => 200],
+    ['from' => 'Dar Naïm', 'to' => 'El Mina', 'price' => 200],
+    ['from' => 'Dar Naïm', 'to' => 'Riyad', 'price' => 200],
+
+    // --- توجنين (Toujounine) ---
+    ['from' => 'Toujounine', 'to' => 'Toujounine', 'price' => 100],
+    ['from' => 'Toujounine', 'to' => 'Dar Naïm', 'price' => 100],
+    ['from' => 'Toujounine', 'to' => 'Arafat', 'price' => 100],
+    ['from' => 'Toujounine', 'to' => 'Ksar', 'price' => 150],
+    ['from' => 'Toujounine', 'to' => 'Teyarett', 'price' => 150],
+    ['from' => 'Toujounine', 'to' => 'Riyad', 'price' => 150],
+    ['from' => 'Toujounine', 'to' => 'Tevragh Zeina', 'price' => 200],
+    ['from' => 'Toujounine', 'to' => 'Sebkha', 'price' => 200],
+    ['from' => 'Toujounine', 'to' => 'El Mina', 'price' => 200],
+
+    // --- عرفات (Arafat) ---
+    ['from' => 'Arafat', 'to' => 'Arafat', 'price' => 100],
+    ['from' => 'Arafat', 'to' => 'Toujounine', 'price' => 100],
+    ['from' => 'Arafat', 'to' => 'El Mina', 'price' => 100],
+    ['from' => 'Arafat', 'to' => 'Riyad', 'price' => 100],
+    ['from' => 'Arafat', 'to' => 'Ksar', 'price' => 150],
+    ['from' => 'Arafat', 'to' => 'Tevragh Zeina', 'price' => 150],
+    ['from' => 'Arafat', 'to' => 'Sebkha', 'price' => 150],
+    ['from' => 'Arafat', 'to' => 'Dar Naïm', 'price' => 150],
+    ['from' => 'Arafat', 'to' => 'Teyarett', 'price' => 200],
+
+    // --- الميناء (El Mina) ---
+    ['from' => 'El Mina', 'to' => 'El Mina', 'price' => 100],
+    ['from' => 'El Mina', 'to' => 'Sebkha', 'price' => 100],
+    ['from' => 'El Mina', 'to' => 'Arafat', 'price' => 100],
+    ['from' => 'El Mina', 'to' => 'Riyad', 'price' => 100],
+    ['from' => 'El Mina', 'to' => 'Tevragh Zeina', 'price' => 150],
+    ['from' => 'El Mina', 'to' => 'Ksar', 'price' => 150],
+    ['from' => 'El Mina', 'to' => 'Toujounine', 'price' => 200],
+    ['from' => 'El Mina', 'to' => 'Dar Naïm', 'price' => 200],
+    ['from' => 'El Mina', 'to' => 'Teyarett', 'price' => 200],
+
+    // --- الرياض (Riyad) ---
+    ['from' => 'Riyad', 'to' => 'Riyad', 'price' => 100],
+    ['from' => 'Riyad', 'to' => 'Arafat', 'price' => 100],
+    ['from' => 'Riyad', 'to' => 'El Mina', 'price' => 100],
+    ['from' => 'Riyad', 'to' => 'Sebkha', 'price' => 150],
+    ['from' => 'Riyad', 'to' => 'Toujounine', 'price' => 150],
+    ['from' => 'Riyad', 'to' => 'Tevragh Zeina', 'price' => 200],
+    ['from' => 'Riyad', 'to' => 'Ksar', 'price' => 200],
+    ['from' => 'Riyad', 'to' => 'Dar Naïm', 'price' => 200],
+    ['from' => 'Riyad', 'to' => 'Teyarett', 'price' => 200]
+];
+
+/**
+ * Get price for zone-to-zone delivery
+ */
+function getZonePrice($from, $to) {
+    global $zone_prices;
+    foreach ($zone_prices as $route) {
+        if ($route['from'] === $from && $route['to'] === $to) {
+            return $route['price'];
+        }
+    }
+    return 150; // Default price if not found
+}
 
 // ==========================================
 // DATABASE CONNECTION
@@ -98,11 +229,9 @@ try {
         details TEXT NOT NULL,
         address VARCHAR(255) NOT NULL,
         client_phone VARCHAR(20) DEFAULT NULL,
-        pickup_lat DECIMAL(10,8) DEFAULT NULL,
-        pickup_lng DECIMAL(11,8) DEFAULT NULL,
-        dropoff_lat DECIMAL(10,8) DEFAULT NULL,
-        dropoff_lng DECIMAL(11,8) DEFAULT NULL,
-        distance_km DECIMAL(6,2) DEFAULT NULL,
+        pickup_zone VARCHAR(50) DEFAULT NULL,
+        dropoff_zone VARCHAR(50) DEFAULT NULL,
+        delivery_price INT DEFAULT 0,
         status ENUM('pending','accepted','picked_up','delivered','cancelled') DEFAULT 'pending',
         driver_id INT DEFAULT NULL,
         delivery_code VARCHAR(10) DEFAULT NULL,
@@ -120,7 +249,9 @@ try {
         INDEX idx_driver (driver_id),
         INDEX idx_client (client_id),
         INDEX idx_customer (customer_name),
-        INDEX idx_created (created_at)
+        INDEX idx_created (created_at),
+        INDEX idx_pickup_zone (pickup_zone),
+        INDEX idx_dropoff_zone (dropoff_zone)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     // 3. Create Serial Number Counters Table
@@ -216,13 +347,9 @@ try {
         ],
         'orders1' => [
             'client_id' => "ALTER TABLE orders1 ADD COLUMN client_id INT DEFAULT NULL AFTER id",
-            'pickup_address' => "ALTER TABLE orders1 ADD COLUMN pickup_address VARCHAR(500) DEFAULT NULL AFTER address",
-            'client_phone' => "ALTER TABLE orders1 ADD COLUMN client_phone VARCHAR(20) DEFAULT NULL AFTER address",
-            'pickup_lat' => "ALTER TABLE orders1 ADD COLUMN pickup_lat DECIMAL(10,8) DEFAULT NULL AFTER client_phone",
-            'pickup_lng' => "ALTER TABLE orders1 ADD COLUMN pickup_lng DECIMAL(11,8) DEFAULT NULL AFTER pickup_lat",
-            'delivery_lat' => "ALTER TABLE orders1 ADD COLUMN delivery_lat DECIMAL(10,8) DEFAULT NULL AFTER pickup_lng",
-            'delivery_lng' => "ALTER TABLE orders1 ADD COLUMN delivery_lng DECIMAL(11,8) DEFAULT NULL AFTER delivery_lat",
-            'distance_km' => "ALTER TABLE orders1 ADD COLUMN distance_km DECIMAL(6,2) DEFAULT NULL AFTER delivery_lng",
+            'pickup_zone' => "ALTER TABLE orders1 ADD COLUMN pickup_zone VARCHAR(50) DEFAULT NULL AFTER client_phone",
+            'dropoff_zone' => "ALTER TABLE orders1 ADD COLUMN dropoff_zone VARCHAR(50) DEFAULT NULL AFTER pickup_zone",
+            'delivery_price' => "ALTER TABLE orders1 ADD COLUMN delivery_price INT DEFAULT 0 AFTER dropoff_zone",
             'points_cost' => "ALTER TABLE orders1 ADD COLUMN points_cost INT DEFAULT 0 AFTER delivery_code",
             'accepted_at' => "ALTER TABLE orders1 ADD COLUMN accepted_at TIMESTAMP NULL AFTER points_cost",
             'picked_at' => "ALTER TABLE orders1 ADD COLUMN picked_at TIMESTAMP NULL AFTER accepted_at",
