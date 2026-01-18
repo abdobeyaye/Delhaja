@@ -692,8 +692,9 @@ if (isset($_SESSION['user'])) {
                     $deduct = $conn->prepare("UPDATE users1 SET points = points - ?, total_orders = total_orders + 1 WHERE id=?");
                     $deduct->execute([$points_cost_per_order, $uid]);
 
-                    // Update session points
+                    // Update session and local user data with new points
                     $_SESSION['user']['points'] -= $points_cost_per_order;
+                    $u['points'] -= $points_cost_per_order;
 
                     $conn->commit();
                     setFlash('success', $t['success_acc']);
