@@ -173,13 +173,12 @@ document.querySelectorAll('form').forEach(form => {
 });
 
 // Remove invalid class on input
-document.querySelectorAll('input, textarea, select').forEach(input => {
-    input.addEventListener('input', function() {
+document.querySelectorAll('input, textarea, select').forEach(element => {
+    const removeInvalidClass = function() {
         this.classList.remove('is-invalid');
-    });
-    input.addEventListener('change', function() {
-        this.classList.remove('is-invalid');
-    });
+    };
+    element.addEventListener('input', removeInvalidClass);
+    element.addEventListener('change', removeInvalidClass);
 });
 
 // ==========================================

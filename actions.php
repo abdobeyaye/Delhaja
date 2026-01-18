@@ -527,8 +527,15 @@ if (isset($_SESSION['user'])) {
                 $order_id = $conn->lastInsertId();
                 $order_created = true;
             } catch (PDOException $e) {
-                // If error is about unknown column, try without promo_code and discount_amount columns
-                if (strpos($e->getMessage(), 'Unknown column') !== false || strpos($e->getMessage(), 'promo_code') !== false || strpos($e->getMessage(), 'discount_amount') !== false) {
+                // Check for unknown column error (SQLSTATE 42S22 or error message contains column reference)
+                $errorCode = $e->getCode();
+                $errorMsg = $e->getMessage();
+                $isColumnError = ($errorCode === '42S22' || $errorCode === 42522 ||
+                                  strpos($errorMsg, 'Unknown column') !== false ||
+                                  strpos($errorMsg, "doesn't have a default value") !== false);
+
+                if ($isColumnError) {
+                    // Try without promo_code and discount_amount columns (for older database schemas)
                     try {
                         $stmt = $conn->prepare("INSERT INTO orders1 (client_id, customer_name, details, address, client_phone, pickup_zone, dropoff_zone, delivery_price, status, delivery_code, points_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)");
                         $stmt->execute([
@@ -550,11 +557,11 @@ if (isset($_SESSION['user'])) {
                         $promo_id = null;
                     } catch (PDOException $e2) {
                         error_log("Customer order creation failed (fallback): " . $e2->getMessage());
-                        setFlash('error', ($t['err_order_failed'] ?? 'Failed to create order. Please try again.') . ' (E1)');
+                        setFlash('error', ($t['err_order_failed'] ?? 'Failed to create order. Please try again.') . ' [DB_SCHEMA]');
                     }
                 } else {
                     error_log("Customer order creation failed: " . $e->getMessage());
-                    setFlash('error', ($t['err_order_failed'] ?? 'Failed to create order. Please try again.') . ' (E2)');
+                    setFlash('error', ($t['err_order_failed'] ?? 'Failed to create order. Please try again.') . ' [DB_ERROR]');
                 }
             }
 
