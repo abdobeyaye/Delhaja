@@ -49,12 +49,13 @@ CREATE TABLE IF NOT EXISTS orders1 (
     client_id INT DEFAULT NULL COMMENT 'Link to users1.id',
     customer_name VARCHAR(50) NOT NULL COMMENT 'Customer username/display name',
     details TEXT NOT NULL COMMENT 'Order details/items',
-    address VARCHAR(255) NOT NULL COMMENT 'Delivery address',
+    address VARCHAR(255) NOT NULL COMMENT 'Delivery address (legacy - use detailed_address)',
+    detailed_address TEXT DEFAULT NULL COMMENT 'Detailed delivery address',
     client_phone VARCHAR(20) DEFAULT NULL COMMENT 'Customer phone number',
-    pickup_lat DECIMAL(10,8) DEFAULT NULL,
-    pickup_lng DECIMAL(11,8) DEFAULT NULL,
-    dropoff_lat DECIMAL(10,8) DEFAULT NULL,
-    dropoff_lng DECIMAL(11,8) DEFAULT NULL,
+    pickup_district_id INT DEFAULT NULL COMMENT 'Pickup district ID',
+    delivery_district_id INT DEFAULT NULL COMMENT 'Delivery district ID',
+    district_id INT DEFAULT NULL COMMENT 'Single district (for backwards compatibility)',
+    delivery_fee INT DEFAULT 100 COMMENT 'Delivery fee in MRU (100-200)',
     distance_km DECIMAL(6,2) DEFAULT NULL,
     status ENUM('pending','accepted','picked_up','delivered','cancelled') DEFAULT 'pending',
     driver_id INT DEFAULT NULL COMMENT 'Assigned driver users1.id',
@@ -65,8 +66,6 @@ CREATE TABLE IF NOT EXISTS orders1 (
     delivered_at TIMESTAMP NULL,
     cancelled_at TIMESTAMP NULL,
     cancel_reason TEXT DEFAULT NULL,
-    promo_code VARCHAR(50) DEFAULT NULL COMMENT 'Applied promo code',
-    discount_amount DECIMAL(10,2) DEFAULT 0 COMMENT 'Discount amount applied',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -74,7 +73,10 @@ CREATE TABLE IF NOT EXISTS orders1 (
     INDEX idx_driver (driver_id),
     INDEX idx_client (client_id),
     INDEX idx_customer (customer_name),
-    INDEX idx_created (created_at)
+    INDEX idx_created (created_at),
+    INDEX idx_pickup_district (pickup_district_id),
+    INDEX idx_delivery_district (delivery_district_id),
+    INDEX idx_district (district_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -122,42 +124,47 @@ CREATE TABLE IF NOT EXISTS order_tracking (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
--- 6. PROMO CODES TABLE
+-- 6. DISTRICTS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS promo_codes (
+CREATE TABLE IF NOT EXISTS districts (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Promo code (e.g., SUMMER2026)',
-    discount_type ENUM('percentage', 'fixed') NOT NULL COMMENT 'Percentage or fixed amount',
-    discount_value DECIMAL(10,2) NOT NULL COMMENT 'Value (e.g., 20 for 20% or 50 for 50 MRU)',
-    max_uses INT DEFAULT NULL COMMENT 'Maximum uses (NULL = unlimited)',
-    used_count INT DEFAULT 0 COMMENT 'Number of times used',
-    valid_from TIMESTAMP NULL COMMENT 'Start date',
-    valid_until TIMESTAMP NULL COMMENT 'End date',
+    name VARCHAR(100) NOT NULL COMMENT 'District name (French)',
+    name_ar VARCHAR(100) NOT NULL COMMENT 'District name (Arabic)',
     is_active TINYINT(1) DEFAULT 1 COMMENT 'Active status',
-    created_by INT DEFAULT NULL COMMENT 'Admin who created it',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    INDEX idx_code (code),
-    INDEX idx_active (is_active),
-    INDEX idx_valid (valid_from, valid_until)
+    INDEX idx_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- 7. PROMO CODE USAGE TRACKING
+-- 7. DISTRICT PRICES TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS promo_code_uses (
+CREATE TABLE IF NOT EXISTS district_prices (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    promo_code_id INT NOT NULL COMMENT 'Link to promo_codes.id',
-    user_id INT NOT NULL COMMENT 'Customer who used the code',
-    order_id INT NOT NULL COMMENT 'Order where code was used',
-    discount_amount DECIMAL(10,2) NOT NULL COMMENT 'Actual discount applied',
-    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    from_district_id INT NOT NULL COMMENT 'Pickup district',
+    to_district_id INT NOT NULL COMMENT 'Delivery district',
+    price INT NOT NULL DEFAULT 100 COMMENT 'Delivery fee in MRU (100-200)',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    INDEX idx_promo_code (promo_code_id),
-    INDEX idx_user (user_id),
-    INDEX idx_order (order_id),
-    UNIQUE KEY unique_user_promo (user_id, promo_code_id)
+    UNIQUE KEY unique_route (from_district_id, to_district_id),
+    INDEX idx_from (from_district_id),
+    INDEX idx_to (to_district_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- 8. DRIVER DISTRICTS (Junction Table)
+-- ============================================
+CREATE TABLE IF NOT EXISTS driver_districts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    driver_id INT NOT NULL COMMENT 'Driver user ID',
+    district_id INT NOT NULL COMMENT 'District ID',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY unique_driver_district (driver_id, district_id),
+    INDEX idx_driver (driver_id),
+    INDEX idx_district (district_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -171,6 +178,46 @@ INSERT INTO users1 (serial_no, username, password, role, points, status, full_na
 ('AD-2501-00001', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 0, 'active', 'Administrator', '20000001', 1, 1),
 ('DR-2501-00001', 'driver', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'driver', 50, 'active', 'Demo Driver', '30000002', 1, 1),
 ('CL-2501-00001', 'client', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'customer', 0, 'active', 'Demo Client', '40000003', 1, 0);
+
+-- ============================================
+-- DEFAULT DISTRICTS
+-- ============================================
+INSERT INTO districts (id, name, name_ar, is_active) VALUES
+(1, 'Tevragh Zeina', 'تفرغ زينة', 1),
+(2, 'Ksar', 'لكصر', 1),
+(3, 'Sebkha', 'سبخة', 1),
+(4, 'Teyarett', 'تيارت', 1),
+(5, 'Dar Naïm', 'دار النعيم', 1),
+(6, 'Toujounine', 'توجنين', 1),
+(7, 'Arafat', 'عرفات', 1),
+(8, 'El Mina', 'الميناء', 1),
+(9, 'Riyad', 'الرياض', 1),
+(10, 'Tarhil', 'الترحيل', 1);
+
+-- ============================================
+-- EXACT PRICING MATRIX (100-200 MRU)
+-- ============================================
+INSERT INTO district_prices (from_district_id, to_district_id, price) VALUES
+-- Tevragh Zeina (1)
+(1,1,100),(1,2,100),(1,3,100),(1,4,150),(1,5,200),(1,6,200),(1,7,150),(1,8,150),(1,9,200),(1,10,200),
+-- Ksar (2)
+(2,1,100),(2,2,100),(2,3,100),(2,4,100),(2,5,100),(2,6,150),(2,7,150),(2,8,150),(2,9,200),(2,10,200),
+-- Sebkha (3)
+(3,1,100),(3,2,100),(3,3,100),(3,4,200),(3,5,200),(3,6,200),(3,7,150),(3,8,100),(3,9,150),(3,10,200),
+-- Teyarett (4)
+(4,1,150),(4,2,100),(4,3,200),(4,4,100),(4,5,100),(4,6,150),(4,7,200),(4,8,200),(4,9,200),(4,10,200),
+-- Dar Naïm (5)
+(5,1,200),(5,2,100),(5,3,200),(5,4,100),(5,5,100),(5,6,100),(5,7,150),(5,8,200),(5,9,200),(5,10,200),
+-- Toujounine (6)
+(6,1,200),(6,2,150),(6,3,200),(6,4,150),(6,5,100),(6,6,100),(6,7,100),(6,8,200),(6,9,150),(6,10,200),
+-- Arafat (7)
+(7,1,150),(7,2,150),(7,3,150),(7,4,200),(7,5,150),(7,6,100),(7,7,100),(7,8,100),(7,9,100),(7,10,200),
+-- El Mina (8)
+(8,1,150),(8,2,150),(8,3,100),(8,4,200),(8,5,200),(8,6,200),(8,7,100),(8,8,100),(8,9,100),(8,10,200),
+-- Riyad (9)
+(9,1,200),(9,2,200),(9,3,150),(9,4,200),(9,5,200),(9,6,150),(9,7,100),(9,8,100),(9,9,100),(9,10,200),
+-- Tarhil (10)
+(10,1,200),(10,2,200),(10,3,200),(10,4,200),(10,5,200),(10,6,200),(10,7,200),(10,8,200),(10,9,200),(10,10,100);
 
 -- ============================================
 -- DEMO ACCOUNTS LOGIN INFO:

@@ -599,9 +599,6 @@ require_once 'actions.php';
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#points"><i class="fas fa-coins"></i> <span class="d-none d-sm-inline"><?php echo $t['add_points']; ?></span></a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-bs-toggle="tab" href="#promo-codes"><i class="fas fa-tag"></i> <span class="d-none d-sm-inline"><?php echo $t['promo_codes'] ?? 'Promo Codes'; ?></span></a>
-                </li>
             </ul>
 
             <div class="tab-content">
@@ -980,95 +977,6 @@ require_once 'actions.php';
                     </div>
                 </div>
 
-                <!-- PROMO CODES TAB -->
-                <div class="tab-pane fade" id="promo-codes">
-                    <div class="card content-card">
-                        <div class="card-header bg-white py-3 d-flex justify-content-between flex-wrap gap-2">
-                            <h5 class="mb-0"><i class="fas fa-tag text-success"></i> <?php echo $t['promo_codes'] ?? 'Promo Codes'; ?></h5>
-                            <button class="btn btn-sm btn-success" onclick="showAddPromoCodeModal()">
-                                <i class="fas fa-plus"></i> <?php echo $t['create_promo'] ?? 'Create Promo Code'; ?>
-                            </button>
-                        </div>
-                        <div class="card-body p-3">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th><?php echo $t['code'] ?? 'Code'; ?></th>
-                                            <th><?php echo $t['discount'] ?? 'Discount'; ?></th>
-                                            <th><?php echo $t['usage'] ?? 'Usage'; ?></th>
-                                            <th><?php echo $t['validity'] ?? 'Validity'; ?></th>
-                                            <th><?php echo $t['status'] ?? 'Status'; ?></th>
-                                            <th><?php echo $t['actions'] ?? 'Actions'; ?></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php
-                                        $promo_codes = $conn->query("SELECT * FROM promo_codes ORDER BY created_at DESC");
-                                        if($promo_codes->rowCount() == 0): ?>
-                                        <tr>
-                                            <td colspan="6" class="text-center py-4 text-muted">
-                                                <i class="fas fa-tag fa-2x mb-2 d-block"></i>
-                                                <?php echo $t['no_promo_codes'] ?? 'No promo codes yet. Create one to get started!'; ?>
-                                            </td>
-                                        </tr>
-                                        <?php else: while($promo = $promo_codes->fetch()):
-                                            $is_expired = $promo['valid_until'] && strtotime($promo['valid_until']) < time();
-                                            $is_maxed = $promo['max_uses'] && $promo['used_count'] >= $promo['max_uses'];
-                                        ?>
-                                        <tr>
-                                            <td><strong class="text-primary"><?php echo e($promo['code']); ?></strong></td>
-                                            <td>
-                                                <?php if($promo['discount_type'] == 'percentage'): ?>
-                                                    <span class="badge bg-info"><?php echo $promo['discount_value']; ?>%</span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-success"><?php echo $promo['discount_value']; ?> MRU</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <?php echo $promo['used_count']; ?> / <?php echo $promo['max_uses'] ?? '∞'; ?>
-                                            </td>
-                                            <td class="small">
-                                                <?php if($promo['valid_from']): ?>
-                                                    <div>From: <?php echo date('Y-m-d', strtotime($promo['valid_from'])); ?></div>
-                                                <?php endif; ?>
-                                                <?php if($promo['valid_until']): ?>
-                                                    <div>Until: <?php echo date('Y-m-d', strtotime($promo['valid_until'])); ?></div>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <?php if(!$promo['is_active']): ?>
-                                                    <span class="badge bg-secondary"><?php echo $t['inactive'] ?? 'Inactive'; ?></span>
-                                                <?php elseif($is_expired): ?>
-                                                    <span class="badge bg-danger"><?php echo $t['expired'] ?? 'Expired'; ?></span>
-                                                <?php elseif($is_maxed): ?>
-                                                    <span class="badge bg-warning text-dark"><?php echo $t['max_uses_reached'] ?? 'Max Uses'; ?></span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-success"><?php echo $t['active'] ?? 'Active'; ?></span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-outline-primary" onclick='editPromoCode(<?php echo json_encode($promo); ?>)'>
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <a href="?toggle_promo=<?php echo $promo['id']; ?>" class="btn btn-outline-<?php echo $promo['is_active'] ? 'warning' : 'success'; ?>">
-                                                        <i class="fas fa-<?php echo $promo['is_active'] ? 'pause' : 'play'; ?>"></i>
-                                                    </a>
-                                                    <a href="?delete_promo=<?php echo $promo['id']; ?>" class="btn btn-outline-danger" onclick="return confirm('<?php echo $t['confirm_delete'] ?? 'Delete this promo code?'; ?>')">
-                                                        <i class="fas fa-trash"></i>
-                                                    </a>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <?php endwhile; endif; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <script>
                 function filterDrivers() {
                     const search = document.getElementById('driverSearchInput').value.toLowerCase();
@@ -1248,72 +1156,6 @@ require_once 'actions.php';
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo $t['cancel']; ?></button>
                                 <button type="submit" name="save_district" class="btn btn-primary">
-                                    <i class="fas fa-check-circle me-1"></i><?php echo $t['save'] ?? 'Save'; ?>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Add/Edit Promo Code Modal -->
-            <div class="modal fade" id="promoCodeModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title"><i class="fas fa-tag text-success"></i> <span id="promoModalTitle"><?php echo $t['create_promo'] ?? 'Create Promo Code'; ?></span></h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form method="POST" accept-charset="UTF-8" id="promoCodeForm">
-                            <div class="modal-body">
-                                <input type="hidden" name="promo_id" id="promoId">
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold"><?php echo $t['code'] ?? 'Code'; ?> *</label>
-                                    <input type="text" name="promo_code" id="promoCode" class="form-control text-uppercase" required pattern="[A-Z0-9]+" placeholder="e.g. SUMMER2026" maxlength="50">
-                                    <small class="text-muted"><?php echo $t['code_help'] ?? 'Uppercase letters and numbers only'; ?></small>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold"><?php echo $t['discount_type'] ?? 'Discount Type'; ?> *</label>
-                                    <select name="discount_type" id="discountType" class="form-select" required onchange="updateDiscountLabel()">
-                                        <option value="percentage"><?php echo $t['percentage'] ?? 'Percentage'; ?> (%)</option>
-                                        <option value="fixed"><?php echo $t['fixed_amount'] ?? 'Fixed Amount'; ?> (MRU)</option>
-                                    </select>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold"><span id="discountLabel"><?php echo $t['discount_value'] ?? 'Discount Value'; ?></span> *</label>
-                                    <input type="number" name="discount_value" id="discountValue" class="form-control" required min="0" max="100" step="0.01" placeholder="e.g. 20">
-                                    <small class="text-muted" id="discountHelp"><?php echo $t['percentage_help'] ?? 'Enter percentage (e.g., 20 for 20% off)'; ?></small>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold"><?php echo $t['max_uses'] ?? 'Maximum Uses'; ?></label>
-                                    <input type="number" name="max_uses" id="maxUses" class="form-control" min="1" placeholder="<?php echo $t['unlimited'] ?? 'Leave empty for unlimited'; ?>">
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold"><?php echo $t['valid_from'] ?? 'Valid From'; ?></label>
-                                        <input type="date" name="valid_from" id="validFrom" class="form-control">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold"><?php echo $t['valid_until'] ?? 'Valid Until'; ?></label>
-                                        <input type="date" name="valid_until" id="validUntil" class="form-control">
-                                    </div>
-                                </div>
-
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="is_active" id="isActive" value="1" checked>
-                                    <label class="form-check-label" for="isActive">
-                                        <?php echo $t['active'] ?? 'Active'; ?>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo $t['cancel']; ?></button>
-                                <button type="submit" name="save_promo_code" class="btn btn-success">
                                     <i class="fas fa-check-circle me-1"></i><?php echo $t['save'] ?? 'Save'; ?>
                                 </button>
                             </div>
@@ -1692,15 +1534,20 @@ require_once 'actions.php';
                                 </div>
                             </div>
 
+                            <?php
+                            // Fetch districts once and cache for reuse
+                            $districts_query = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
+                            $districts_list = $districts_query->fetchAll(PDO::FETCH_ASSOC);
+                            ?>
+
                             <div class="mb-3">
                                 <label class="form-label small text-muted mb-1">
-                                    <i class="fas fa-map-marked-alt me-1 text-primary"></i><?php echo $t['district'] ?? 'District'; ?> <span class="text-danger">*</span>
+                                    <i class="fas fa-map-marked-alt me-1 text-success"></i><?php echo $t['pickup_district'] ?? 'Pickup District'; ?> <span class="text-danger">*</span>
                                 </label>
-                                <select name="district_id" class="form-control" required style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
-                                    <option value=""><?php echo $t['select_district'] ?? 'Select District'; ?></option>
+                                <select name="pickup_district_id" id="pickup_district_id" class="form-control" required onchange="calculateDeliveryFee()" style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
+                                    <option value=""><?php echo $t['select_pickup_district'] ?? 'Select Pickup District'; ?></option>
                                     <?php
-                                    $districts_query = $conn->query("SELECT id, name, name_ar FROM districts WHERE is_active = 1 ORDER BY name");
-                                    while ($district = $districts_query->fetch()):
+                                    foreach ($districts_list as $district):
                                         // Show bilingual names: "District Name - الاسم العربي" (or reversed for RTL)
                                         if ($lang == 'ar'):
                                             $display_name = $district['name_ar'] . ' - ' . $district['name'];
@@ -1709,9 +1556,30 @@ require_once 'actions.php';
                                         endif;
                                     ?>
                                         <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 </select>
-                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['district_required'] ?? 'Please select your district'; ?></small>
+                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['pickup_district_required'] ?? 'Please select pickup district'; ?></small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small text-muted mb-1">
+                                    <i class="fas fa-map-marked-alt me-1 text-danger"></i><?php echo $t['delivery_district'] ?? 'Delivery District'; ?> <span class="text-danger">*</span>
+                                </label>
+                                <select name="delivery_district_id" id="delivery_district_id" class="form-control" required onchange="calculateDeliveryFee()" style="border-radius: var(--radius); border: 2px solid var(--gray-200);">
+                                    <option value=""><?php echo $t['select_delivery_district'] ?? 'Select Delivery District'; ?></option>
+                                    <?php
+                                    foreach ($districts_list as $district):
+                                        // Show bilingual names: "District Name - الاسم العربي" (or reversed for RTL)
+                                        if ($lang == 'ar'):
+                                            $display_name = $district['name_ar'] . ' - ' . $district['name'];
+                                        else:
+                                            $display_name = $district['name'] . ' - ' . $district['name_ar'];
+                                        endif;
+                                    ?>
+                                        <option value="<?php echo $district['id']; ?>"><?php echo e($display_name); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['delivery_district_required'] ?? 'Please select delivery district'; ?></small>
                             </div>
 
                             <div class="mb-4">
@@ -1725,19 +1593,13 @@ require_once 'actions.php';
                                 <small class="text-muted"><i class="fas fa-info-circle me-1"></i><?php echo $t['address_required'] ?? 'Please enter your detailed address (minimum 10 characters)'; ?></small>
                             </div>
 
-                            <div class="mb-4">
-                                <label class="form-label small text-muted mb-1">
-                                    <i class="fas fa-tag me-1 text-success"></i><?php echo $t['promo_code'] ?? 'Promo Code'; ?> <span class="text-muted">(<?php echo $t['optional'] ?? 'Optional'; ?>)</span>
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" name="promo_code" id="promoCodeInput" class="form-control text-uppercase"
-                                           placeholder="<?php echo $t['enter_promo_code'] ?? 'Enter promo code'; ?>" maxlength="50">
-                                    <button type="button" class="btn btn-outline-success" onclick="validatePromoCode()" id="validatePromoBtn">
-                                        <i class="fas fa-check"></i> <?php echo $t['apply'] ?? 'Apply'; ?>
-                                    </button>
-                                </div>
-                                <small id="promoFeedback" class="text-muted"></small>
+                            <!-- Delivery Fee Display (BEFORE Submit) -->
+                            <div id="deliveryFeeDisplay" class="alert alert-success text-center" style="display:none;">
+                                <i class="fas fa-money-bill-wave fa-2x mb-2"></i><br>
+                                <strong><?php echo $t['delivery_fee'] ?? 'Delivery Fee'; ?>:</strong>
+                                <span id="calculatedFee" class="fs-3 fw-bold">---</span> MRU
                             </div>
+                            <input type="hidden" name="delivery_fee" id="delivery_fee_input" value="0">
 
                             <button type="submit" name="add_order" class="slider-btn-container w-100">
                                 <div class="slider-thumb"><i class="fa-solid fa-paper-plane"></i></div>
@@ -2182,6 +2044,42 @@ initDriverFeatures(AppTranslations, AppConfig.hasExistingLocation);
 // Initialize real-time polling
 initRealtimePolling(AppConfig.userRole, AppTranslations);
 <?php endif; ?>
+
+function calculateDeliveryFee() {
+    var pickupId = document.getElementById('pickup_district_id').value;
+    var deliveryId = document.getElementById('delivery_district_id').value;
+    var feeDisplay = document.getElementById('deliveryFeeDisplay');
+    var feeText = document.getElementById('calculatedFee');
+    var feeInput = document.getElementById('delivery_fee_input');
+    
+    if (pickupId && deliveryId) {
+        // Use URLSearchParams for safe URL construction
+        const params = new URLSearchParams({
+            action: 'calculate_fee',
+            pickup: pickupId,
+            delivery: deliveryId
+        });
+        fetch('api.php?' + params.toString())
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    feeText.textContent = data.fee;
+                    feeInput.value = data.fee;
+                    feeDisplay.style.display = 'block';
+                } else {
+                    feeDisplay.style.display = 'none';
+                    feeInput.value = '0';
+                }
+            })
+            .catch(err => {
+                console.error('Error calculating delivery fee:', err);
+                feeDisplay.style.display = 'none';
+                feeInput.value = '0';
+            });
+    } else {
+        feeDisplay.style.display = 'none';
+    }
+}
 </script>
 </body>
 </html>
