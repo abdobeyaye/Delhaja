@@ -1519,6 +1519,7 @@ require_once 'actions.php';
                             <i class="fas fa-plus-circle text-primary me-2"></i><?php echo $t['new_order']; ?>
                         </h5>
                         <form method="POST" accept-charset="UTF-8" id="newOrderForm">
+                            <input type="hidden" name="add_order" value="1">
                             <div class="mb-3">
                                 <label class="form-label small text-muted mb-1">
                                     <i class="fas fa-box me-1"></i><?php echo $t['order_details']; ?>
