@@ -43,7 +43,7 @@ require_once 'actions.php';
 </div>
 
 <!-- Order Notification Bubbles Container (for drivers) -->
-<?php if(isset($_SESSION['user']) && $role === 'driver'): ?>
+<?php if(isset($_SESSION['user']) && isset($_SESSION['user']['role']) && $_SESSION['user']['role'] === 'driver'): ?>
 <div id="orderBubbleContainer" class="order-notification-container"></div>
 <?php endif; ?>
 

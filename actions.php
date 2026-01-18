@@ -692,11 +692,17 @@ if (isset($_SESSION['user'])) {
                     $deduct = $conn->prepare("UPDATE users1 SET points = points - ?, total_orders = total_orders + 1 WHERE id=?");
                     $deduct->execute([$points_cost_per_order, $uid]);
 
-                    // Update session and local user data with new points
-                    $_SESSION['user']['points'] -= $points_cost_per_order;
-                    $u['points'] -= $points_cost_per_order;
-
                     $conn->commit();
+
+                    // Refresh session with updated user data from database
+                    $refreshStmt = $conn->prepare("SELECT * FROM users1 WHERE id=?");
+                    $refreshStmt->execute([$uid]);
+                    $refreshedUser = $refreshStmt->fetch();
+                    if ($refreshedUser) {
+                        $_SESSION['user'] = $refreshedUser;
+                        $u = $_SESSION['user'];
+                    }
+
                     setFlash('success', $t['success_acc']);
                 } else {
                     $conn->rollBack();
