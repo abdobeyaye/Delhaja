@@ -685,16 +685,16 @@ function clearFormInteractionTimeout() {
     }
 }
 
-// Helper function to check if a form element still exists in DOM
+// Helper function to check if an element still exists in DOM
 function isElementInDOM(element) {
     return element && document.body.contains(element);
 }
 
 // Helper function to check if focus is inside a form
 function isFocusInsideForm(formElement) {
-    // If no active element or body is focused (no specific focus), consider focus as outside
+    // If formElement is null, no active element, or body is focused, consider focus as outside
     const activeElement = document.activeElement;
-    if (!activeElement || activeElement === document.body) {
+    if (!formElement || !activeElement || activeElement === document.body) {
         return false;
     }
     return formElement.contains(activeElement);
