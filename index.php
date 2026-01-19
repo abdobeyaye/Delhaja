@@ -2615,8 +2615,9 @@ window.showDriverDetails = function(driver) {
     const contactSection = document.getElementById('driverModalContactSection');
     if (driver.phone) {
         contactSection.style.display = 'grid';
-        document.getElementById('driverModalCallBtn').href = 'tel:+<?php echo $country_code; ?>' + driver.phone;
-        document.getElementById('driverModalWhatsappBtn').href = 'https://wa.me/<?php echo $country_code; ?>' + driver.phone;
+        const countryCode = AppConfig.countryCode || '222';
+        document.getElementById('driverModalCallBtn').href = 'tel:+' + countryCode + driver.phone;
+        document.getElementById('driverModalWhatsappBtn').href = 'https://wa.me/' + countryCode + driver.phone;
     } else {
         contactSection.style.display = 'none';
     }

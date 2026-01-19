@@ -325,10 +325,14 @@ function _showOrderTracking(order, translations) {
     document.getElementById('tracking-driver-name').textContent = order.driver_name;
     document.getElementById('tracking-driver-rating').innerHTML = '<i class="fas fa-star"></i> ' + parseFloat(order.driver_rating).toFixed(1);
 
-    // Set avatar
+    // Set avatar (escape src attribute to prevent XSS)
     const avatarEl = document.getElementById('tracking-driver-avatar');
     if (order.driver_avatar) {
-        avatarEl.innerHTML = '<img src="' + order.driver_avatar + '" alt="Driver">';
+        const img = document.createElement('img');
+        img.src = order.driver_avatar;
+        img.alt = 'Driver';
+        avatarEl.innerHTML = '';
+        avatarEl.appendChild(img);
     } else {
         avatarEl.innerHTML = '<i class="fas fa-user"></i>';
     }
