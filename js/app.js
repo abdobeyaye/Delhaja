@@ -690,6 +690,16 @@ function isElementInDOM(element) {
     return element && document.body.contains(element);
 }
 
+// Helper function to check if focus is inside a form
+function isFocusInsideForm(formElement) {
+    // If no active element or body is focused (no specific focus), consider focus as outside
+    const activeElement = document.activeElement;
+    if (!activeElement || activeElement === document.body) {
+        return false;
+    }
+    return formElement.contains(activeElement);
+}
+
 // Set up form interaction tracking
 document.addEventListener('DOMContentLoaded', function() {
     const newOrderForm = document.getElementById('newOrderForm');
@@ -709,7 +719,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Use a delay to avoid flickering when moving between form fields
         formInteractionTimeout = setTimeout(function() {
             // Check if form still exists in DOM and if focus moved outside
-            if (isElementInDOM(newOrderForm) && !newOrderForm.contains(document.activeElement)) {
+            if (isElementInDOM(newOrderForm) && !isFocusInsideForm(newOrderForm)) {
                 isFillingOrderForm = false;
             }
         }, 500);
@@ -728,7 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // This gives the user time to continue filling the form
         formInteractionTimeout = setTimeout(function() {
             // Only reset if form still exists and focus is outside the form
-            if (isElementInDOM(newOrderForm) && !newOrderForm.contains(document.activeElement)) {
+            if (isElementInDOM(newOrderForm) && !isFocusInsideForm(newOrderForm)) {
                 isFillingOrderForm = false;
             }
         }, 10000);
