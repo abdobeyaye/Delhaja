@@ -1440,7 +1440,7 @@ require_once 'actions.php';
 
                                 <div class="mb-3">
                                     <label class="form-label fw-bold"><?php echo $t['code'] ?? 'Code'; ?> *</label>
-                                    <input type="text" name="promo_code" id="promoCode" class="form-control text-uppercase" required pattern="[A-Za-z0-9]+" placeholder="e.g. SUMMER2026" maxlength="50" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
+                                    <input type="text" name="promo_code" id="promoCode" class="form-control text-uppercase" required pattern="[A-Z0-9]+" placeholder="e.g. SUMMER2026" maxlength="50" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
                                     <small class="text-muted"><?php echo $t['code_help'] ?? 'Uppercase letters and numbers only'; ?></small>
                                 </div>
 
@@ -2236,18 +2236,18 @@ require_once 'actions.php';
                                     <div class="fw-bold text-dark"><?php echo e($clientDisplayName); ?></div>
                                     <?php if($row['client_phone']): ?>
                                     <div class="small text-muted">
-                                        <a href="tel:+222<?php echo $row['client_phone']; ?>" class="text-primary">
-                                            <i class="fas fa-phone me-1"></i>+222 <?php echo $row['client_phone']; ?>
+                                        <a href="tel:+222<?php echo e($row['client_phone']); ?>" class="text-primary">
+                                            <i class="fas fa-phone me-1"></i>+222 <?php echo e($row['client_phone']); ?>
                                         </a>
                                     </div>
                                     <?php endif; ?>
                                 </div>
                                 <?php if($row['client_phone']): ?>
                                 <div class="d-flex gap-2">
-                                    <a href="tel:+222<?php echo $row['client_phone']; ?>" class="btn btn-success btn-sm rounded-circle" title="<?php echo $t['call'] ?? 'Call'; ?>">
+                                    <a href="tel:+222<?php echo e($row['client_phone']); ?>" class="btn btn-success btn-sm rounded-circle" title="<?php echo $t['call'] ?? 'Call'; ?>">
                                         <i class="fas fa-phone"></i>
                                     </a>
-                                    <a href="https://wa.me/<?php echo $country_code . $row['client_phone']; ?>" target="_blank" class="btn btn-sm rounded-circle" style="background-color: #25D366; color: white;" title="WhatsApp">
+                                    <a href="https://wa.me/<?php echo e($country_code . $row['client_phone']); ?>" target="_blank" class="btn btn-sm rounded-circle" style="background-color: #25D366; color: white;" title="WhatsApp">
                                         <i class="fab fa-whatsapp"></i>
                                     </a>
                                 </div>

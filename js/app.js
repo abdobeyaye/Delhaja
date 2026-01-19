@@ -292,16 +292,19 @@ function updateDiscountLabel() {
     
     if (!type || !label || !help) return;
 
+    const discountValue = document.getElementById('discountValue');
+    if (!discountValue) return;
+
     if (type.value === 'percentage') {
         label.textContent = (typeof AppTranslations !== 'undefined' && AppTranslations['percentage']) ? AppTranslations['percentage'] : 'Percentage';
         help.textContent = (typeof AppTranslations !== 'undefined' && AppTranslations['percentage_help']) ? AppTranslations['percentage_help'] : 'Enter percentage (e.g., 20 for 20% off)';
-        document.getElementById('discountValue').placeholder = 'e.g. 20';
-        document.getElementById('discountValue').max = '100';
+        discountValue.placeholder = 'e.g. 20';
+        discountValue.max = '100';
     } else {
         label.textContent = (typeof AppTranslations !== 'undefined' && AppTranslations['fixed_amount']) ? AppTranslations['fixed_amount'] : 'Fixed Amount (MRU)';
         help.textContent = (typeof AppTranslations !== 'undefined' && AppTranslations['fixed_help']) ? AppTranslations['fixed_help'] : 'Enter fixed discount amount in MRU';
-        document.getElementById('discountValue').placeholder = 'e.g. 50';
-        document.getElementById('discountValue').removeAttribute('max');
+        discountValue.placeholder = 'e.g. 50';
+        discountValue.removeAttribute('max');
     }
 }
 
