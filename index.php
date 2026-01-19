@@ -1913,55 +1913,6 @@ trackVisitor($conn, isset($_SESSION['user']) ? $_SESSION['user']['id'] : null);
                     </div>
                 </div>
             </div>
-
-            <!-- DRIVER RECHARGE HISTORY -->
-            <div class="orders-container mb-3">
-                <div class="ultra-card">
-                    <div class="card-inner">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold mb-0"><i class="fas fa-history text-info me-2"></i><?php echo $t['recharge_history'] ?? 'Recharge History'; ?></h6>
-                        </div>
-                        <?php
-                        try {
-                            $driver_recharge_history = $conn->prepare("
-                                SELECT rh.*, a.full_name as admin_name, a.username as admin_username
-                                FROM recharge_history rh
-                                LEFT JOIN users1 a ON rh.admin_id = a.id
-                                WHERE rh.driver_id = ?
-                                ORDER BY rh.created_at DESC
-                                LIMIT 10
-                            ");
-                            $driver_recharge_history->execute([$uid]);
-                            
-                            if($driver_recharge_history->rowCount() == 0): ?>
-                            <div class="text-center py-3 text-muted">
-                                <i class="fas fa-history fa-2x mb-2 d-block"></i>
-                                <small><?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?></small>
-                            </div>
-                            <?php else: ?>
-                            <div class="list-group list-group-flush">
-                                <?php while($drh = $driver_recharge_history->fetch()): ?>
-                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom">
-                                    <div>
-                                        <span class="badge bg-success me-2">+<?php echo $drh['amount']; ?> <?php echo $t['pts'] ?? 'pts'; ?></span>
-                                        <small class="text-muted"><?php echo fmtDate($drh['created_at']); ?></small>
-                                    </div>
-                                    <div class="text-end">
-                                        <small class="text-success fw-bold"><?php echo $drh['new_balance']; ?> <?php echo $t['pts'] ?? 'pts'; ?></small>
-                                    </div>
-                                </div>
-                                <?php endwhile; ?>
-                            </div>
-                            <?php endif;
-                        } catch (PDOException $e) { ?>
-                            <div class="text-center py-3 text-muted">
-                                <i class="fas fa-history fa-2x mb-2 d-block"></i>
-                                <small><?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?></small>
-                            </div>
-                        <?php } ?>
-                    </div>
-                </div>
-            </div>
             <?php endif; ?>
 
             <?php if($role == 'customer'): ?>
