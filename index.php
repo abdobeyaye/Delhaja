@@ -2091,19 +2091,96 @@ trackVisitor($conn, isset($_SESSION['user']) ? $_SESSION['user']['id'] : null);
             <?php endif; ?>
 
             <!-- TABS FOR FILTERING -->
-            <?php $showHistory = isset($_GET['history']) && $_GET['history'] === '1'; ?>
+            <?php 
+            $showHistory = isset($_GET['history']) && $_GET['history'] === '1'; 
+            $showRecharge = isset($_GET['recharge']) && $_GET['recharge'] === '1';
+            $isActive = !$showHistory && !$showRecharge;
+            ?>
             <div class="tabs-wrapper">
-                <a href="index.php" class="tab-new tab-link <?php echo !$showHistory ? 'active' : ''; ?>">
+                <a href="index.php" class="tab-new tab-link <?php echo $isActive ? 'active' : ''; ?>">
                     <?php echo $role == 'driver' ? ($t['active_orders'] ?? 'Active') : ($t['recent_orders'] ?? 'الطلبات'); ?>
                 </a>
                 <a href="index.php?history=1" class="tab-new tab-link <?php echo $showHistory ? 'active' : ''; ?>">
                     <?php echo $t['order_history'] ?? 'History'; ?>
                 </a>
-                <?php if($role == 'driver' && !$showHistory): ?>
+                <?php if($role == 'driver'): ?>
+                <a href="index.php?recharge=1" class="tab-new tab-link <?php echo $showRecharge ? 'active' : ''; ?>">
+                    <i class="fas fa-history me-1"></i><?php echo $t['recharge_history'] ?? 'Recharge'; ?>
+                </a>
+                <?php endif; ?>
+                <?php if($role == 'driver' && $isActive): ?>
                 <span class="badge bg-warning text-dark pulse-badge" id="pendingBadge" style="display:none; margin: auto 0;">0</span>
                 <?php endif; ?>
             </div>
 
+            <?php if($role == 'driver' && $showRecharge): ?>
+            <!-- RECHARGE HISTORY (Separate Tab) -->
+            <div class="orders-container" id="rechargeHistoryContainer">
+                <div class="ultra-card">
+                    <div class="card-inner">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-history text-info me-2"></i><?php echo $t['recharge_history'] ?? 'Recharge History'; ?></h5>
+                        </div>
+                        <?php
+                        try {
+                            $driver_recharge_history = $conn->prepare("
+                                SELECT rh.*, a.full_name as admin_name, a.username as admin_username
+                                FROM recharge_history rh
+                                LEFT JOIN users1 a ON rh.admin_id = a.id
+                                WHERE rh.driver_id = ?
+                                ORDER BY rh.created_at DESC
+                                LIMIT 50
+                            ");
+                            $driver_recharge_history->execute([$uid]);
+                            
+                            if($driver_recharge_history->rowCount() == 0): ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-history fa-3x mb-3 d-block"></i>
+                                <h5 class="text-muted"><?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?></h5>
+                                <p class="text-muted small mb-0"><?php echo $t['recharge_note'] ?? 'Contact support to add credits to your account'; ?></p>
+                            </div>
+                            <?php else: ?>
+                            <div class="list-group list-group-flush">
+                                <?php while($drh = $driver_recharge_history->fetch()): ?>
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom py-3">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <span class="badge bg-success fs-6">+<?php echo $drh['amount']; ?> <?php echo $t['pts'] ?? 'pts'; ?></span>
+                                            <?php if($drh['recharge_type'] == 'bulk'): ?>
+                                            <span class="badge bg-info"><?php echo $t['bulk'] ?? 'Bulk'; ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-clock me-1"></i><?php echo fmtDate($drh['created_at']); ?>
+                                        </small>
+                                        <?php if($drh['admin_name'] || $drh['admin_username']): ?>
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-user-shield me-1"></i><?php echo $t['admin'] ?? 'Admin'; ?>: <?php echo e($drh['admin_name'] ?? $drh['admin_username']); ?>
+                                        </small>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="text-muted small mb-1">
+                                            <?php echo $t['previous_balance'] ?? 'Before'; ?>: <?php echo $drh['previous_balance']; ?> <?php echo $t['pts'] ?? 'pts'; ?>
+                                        </div>
+                                        <div class="text-success fw-bold">
+                                            <?php echo $t['new_balance'] ?? 'After'; ?>: <?php echo $drh['new_balance']; ?> <?php echo $t['pts'] ?? 'pts'; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endwhile; ?>
+                            </div>
+                            <?php endif;
+                        } catch (PDOException $e) { ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-history fa-3x mb-3 d-block"></i>
+                                <h5 class="text-muted"><?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?></h5>
+                            </div>
+                        <?php } ?>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
             <!-- ORDERS AS ULTRA CARDS -->
             <div class="orders-container" id="ordersContainer">
                 <?php
@@ -2483,6 +2560,7 @@ trackVisitor($conn, isset($_SESSION['user']) ? $_SESSION['user']['id'] : null);
                 </div>
                 <?php endwhile; endif; ?>
             </div>
+            <?php endif; ?>
 
             <!-- GLASS NAVIGATION BAR -->
             <?php if($role == 'driver'): ?>
