@@ -1422,7 +1422,23 @@ trackVisitor($conn, isset($_SESSION['user']) ? $_SESSION['user']['id'] : null);
                                     <input type="text" id="edit_username" class="form-control" readonly>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label"><?php echo $t['password']; ?> (leave empty to keep)</label>
+                                    <label class="form-label"><?php echo $t['full_name_ph'] ?? 'Full Name'; ?></label>
+                                    <input type="text" name="full_name" id="edit_full_name" class="form-control" placeholder="<?php echo $t['full_name_ph'] ?? 'Full Name'; ?>">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><?php echo $t['phone_ph'] ?? 'Phone'; ?></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">+222</span>
+                                        <input type="tel" name="phone" id="edit_phone" class="form-control" placeholder="<?php echo $t['phone_example'] ?? '2XXXXXXX'; ?>" pattern="[234][0-9]{7}" maxlength="8" style="direction: ltr;">
+                                    </div>
+                                    <small class="text-muted"><?php echo $t['phone_format_hint'] ?? '8 digits starting with 2, 3, or 4'; ?></small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><?php echo $t['email_ph'] ?? 'Email'; ?></label>
+                                    <input type="email" name="email" id="edit_email" class="form-control" placeholder="<?php echo $t['email_ph'] ?? 'Email'; ?>">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><?php echo $t['password']; ?> (<?php echo $t['leave_empty_password'] ?? 'leave empty to keep'; ?>)</label>
                                     <input type="text" name="password" class="form-control">
                                 </div>
                                 <div class="mb-3">
@@ -2000,12 +2016,29 @@ trackVisitor($conn, isset($_SESSION['user']) ? $_SESSION['user']['id'] : null);
                                 </div>
                             </div>
 
-                            <!-- Delivery Price Display -->
-                            <div class="mb-3" id="deliveryPriceContainer" style="display: none;">
-                                <div class="alert alert-info py-2 px-3 mb-0">
+                            <!-- Order Summary Section -->
+                            <div class="mb-3" id="orderSummaryContainer" style="display: none;">
+                                <div class="alert alert-light border rounded-3 py-3 px-3 mb-0">
+                                    <h6 class="mb-3 fw-bold"><i class="fas fa-receipt me-2 text-primary"></i><?php echo $t['order_summary'] ?? 'Order Summary'; ?></h6>
+                                    
+                                    <!-- Base Delivery Price -->
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span><i class="fas fa-truck me-2 text-muted"></i><?php echo $t['delivery_price'] ?? 'Delivery Price'; ?>:</span>
+                                        <span id="basePriceDisplay" class="fw-bold">0 <?php echo $t['mru'] ?? 'MRU'; ?></span>
+                                    </div>
+                                    
+                                    <!-- Discount Row (shown only when promo is applied) -->
+                                    <div class="d-flex justify-content-between align-items-center mb-2" id="discountRow" style="display: none !important;">
+                                        <span class="text-success"><i class="fas fa-tag me-2"></i><?php echo $t['discount'] ?? 'Discount'; ?>:</span>
+                                        <span id="discountDisplay" class="text-success fw-bold">-0 <?php echo $t['mru'] ?? 'MRU'; ?></span>
+                                    </div>
+                                    
+                                    <hr class="my-2">
+                                    
+                                    <!-- Final Price -->
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span><i class="fas fa-money-bill-wave me-2"></i><?php echo $t['delivery_price'] ?? 'Delivery Price'; ?>:</span>
-                                        <strong id="deliveryPriceDisplay">0 <?php echo $t['mru'] ?? 'MRU'; ?></strong>
+                                        <span class="fw-bold"><i class="fas fa-coins me-2 text-warning"></i><?php echo $t['total_price'] ?? 'Total'; ?>:</span>
+                                        <span id="finalPriceDisplay" class="fs-5 fw-bold text-primary">0 <?php echo $t['mru'] ?? 'MRU'; ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -2758,73 +2791,78 @@ const AppConfig = {
 // Zone price matrix for client-side calculation
 const zonePrices = <?php echo json_encode($zone_prices); ?>;
 
+// Global state for order pricing
+let currentBasePrice = 0;
+let currentDiscount = 0;
+let currentPromoValid = false;
+
 // Calculate delivery price based on selected zones
 function calculateDeliveryPrice() {
     const pickupZone = document.getElementById('pickupZone')?.value;
     const dropoffZone = document.getElementById('dropoffZone')?.value;
-    const priceContainer = document.getElementById('deliveryPriceContainer');
-    const priceDisplay = document.getElementById('deliveryPriceDisplay');
+    const summaryContainer = document.getElementById('orderSummaryContainer');
+    const basePriceDisplay = document.getElementById('basePriceDisplay');
+    const finalPriceDisplay = document.getElementById('finalPriceDisplay');
 
-    if (!priceContainer || !priceDisplay) return;
+    if (!summaryContainer || !basePriceDisplay || !finalPriceDisplay) return;
 
     // Pricing constants for fallback when no routes found
-    const FALLBACK_MIN_PRICE = 100;
-    const FALLBACK_MAX_PRICE = 200;
     const DEFAULT_PRICE = 150;
 
-    // Helper function to find price range from routes
-    function getPriceRange(routes, filterFn) {
-        let minPrice = Infinity;
-        let maxPrice = 0;
-        for (const route of routes) {
-            if (filterFn(route)) {
-                minPrice = Math.min(minPrice, route.price);
-                maxPrice = Math.max(maxPrice, route.price);
+    // Show summary only when both zones are selected (to show exact price, not range)
+    if (pickupZone && dropoffZone) {
+        // Both zones selected - find exact price
+        let price = DEFAULT_PRICE;
+        for (const route of zonePrices) {
+            if (route.from === pickupZone && route.to === dropoffZone) {
+                price = route.price;
+                break;
             }
         }
-        if (minPrice === Infinity) {
-            minPrice = FALLBACK_MIN_PRICE;
-            maxPrice = FALLBACK_MAX_PRICE;
-        }
-        return { minPrice, maxPrice };
-    }
-
-    // Helper function to format price display
-    function formatPriceRange(minPrice, maxPrice) {
-        if (minPrice === maxPrice) {
-            return minPrice + ' ' + AppTranslations.mru;
-        } else {
-            return minPrice + ' - ' + maxPrice + ' ' + AppTranslations.mru;
-        }
-    }
-
-    // Show price immediately when dropoff zone is selected (regardless of pickup)
-    if (dropoffZone) {
-        if (pickupZone) {
-            // Both zones selected - find exact price
-            let price = DEFAULT_PRICE;
-            for (const route of zonePrices) {
-                if (route.from === pickupZone && route.to === dropoffZone) {
-                    price = route.price;
-                    break;
-                }
-            }
-            priceDisplay.textContent = price + ' ' + AppTranslations.mru;
-        } else {
-            // Only dropoff selected - show price range for this destination
-            const { minPrice, maxPrice } = getPriceRange(zonePrices, route => route.to === dropoffZone);
-            priceDisplay.textContent = formatPriceRange(minPrice, maxPrice);
-        }
-        priceContainer.style.display = 'block';
-    } else if (pickupZone) {
-        // Only pickup zone selected - show price range from this origin
-        const { minPrice, maxPrice } = getPriceRange(zonePrices, route => route.from === pickupZone);
-        priceDisplay.textContent = formatPriceRange(minPrice, maxPrice);
-        priceContainer.style.display = 'block';
+        currentBasePrice = price;
+        
+        // Update the display
+        basePriceDisplay.textContent = price + ' ' + AppTranslations.mru;
+        
+        // Calculate final price with discount
+        updateOrderSummary();
+        
+        summaryContainer.style.display = 'block';
     } else {
-        // No zone selected - hide price
-        priceContainer.style.display = 'none';
+        // Hide summary if not both zones selected
+        summaryContainer.style.display = 'none';
+        currentBasePrice = 0;
     }
+}
+
+// Update the order summary with discount calculations
+function updateOrderSummary() {
+    const basePriceDisplay = document.getElementById('basePriceDisplay');
+    const discountRow = document.getElementById('discountRow');
+    const discountDisplay = document.getElementById('discountDisplay');
+    const finalPriceDisplay = document.getElementById('finalPriceDisplay');
+    
+    if (!basePriceDisplay || !discountRow || !discountDisplay || !finalPriceDisplay) return;
+    
+    // Update base price display
+    basePriceDisplay.textContent = currentBasePrice + ' ' + AppTranslations.mru;
+    
+    // Calculate final price
+    let finalPrice = currentBasePrice - currentDiscount;
+    if (finalPrice < 0) finalPrice = 0;
+    
+    // Show/hide discount row based on whether there's a discount
+    if (currentDiscount > 0 && currentPromoValid) {
+        discountRow.style.display = 'flex';
+        discountRow.style.setProperty('display', 'flex', 'important');
+        discountDisplay.textContent = '-' + currentDiscount + ' ' + AppTranslations.mru;
+    } else {
+        discountRow.style.display = 'none';
+        discountRow.style.setProperty('display', 'none', 'important');
+    }
+    
+    // Update final price
+    finalPriceDisplay.textContent = finalPrice + ' ' + AppTranslations.mru;
 }
 
 window.showOrderTracking = function(order) {

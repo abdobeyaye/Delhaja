@@ -193,6 +193,9 @@ function showAddUserModal(role) {
 function editUser(user) {
     document.getElementById('edit_user_id').value = user.id;
     document.getElementById('edit_username').value = user.username;
+    document.getElementById('edit_full_name').value = user.full_name || '';
+    document.getElementById('edit_phone').value = user.phone || '';
+    document.getElementById('edit_email').value = user.email || '';
     document.getElementById('edit_role').value = user.role;
     document.getElementById('edit_points').value = user.points;
 
@@ -833,6 +836,14 @@ function validatePromoCode() {
     if (!code) {
         feedback.innerHTML = '';
         feedback.className = 'text-muted';
+        // Clear discount when promo code is removed
+        if (typeof currentDiscount !== 'undefined') {
+            currentDiscount = 0;
+            currentPromoValid = false;
+            if (typeof updateOrderSummary === 'function') {
+                updateOrderSummary();
+            }
+        }
         return;
     }
 
@@ -854,11 +865,38 @@ function validatePromoCode() {
                 feedback.className = 'text-success fw-bold';
                 input.classList.add('is-valid');
                 input.classList.remove('is-invalid');
+                
+                // Calculate and apply discount to order summary
+                if (data.promo && typeof currentBasePrice !== 'undefined') {
+                    let discountAmount = 0;
+                    if (data.promo.discount_type === 'percentage') {
+                        discountAmount = Math.round((currentBasePrice * data.promo.discount_value) / 100);
+                    } else {
+                        // Fixed discount
+                        discountAmount = Math.min(data.promo.discount_value, currentBasePrice);
+                    }
+                    currentDiscount = discountAmount;
+                    currentPromoValid = true;
+                    
+                    // Update order summary display
+                    if (typeof updateOrderSummary === 'function') {
+                        updateOrderSummary();
+                    }
+                }
             } else {
                 feedback.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>' + data.message;
                 feedback.className = 'text-danger';
                 input.classList.add('is-invalid');
                 input.classList.remove('is-valid');
+                
+                // Clear discount on invalid promo
+                if (typeof currentDiscount !== 'undefined') {
+                    currentDiscount = 0;
+                    currentPromoValid = false;
+                    if (typeof updateOrderSummary === 'function') {
+                        updateOrderSummary();
+                    }
+                }
             }
         })
         .catch(error => {
@@ -866,5 +904,14 @@ function validatePromoCode() {
             btn.innerHTML = '<i class="fas fa-check"></i> Apply';
             feedback.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Error validating code';
             feedback.className = 'text-warning';
+            
+            // Clear discount on error
+            if (typeof currentDiscount !== 'undefined') {
+                currentDiscount = 0;
+                currentPromoValid = false;
+                if (typeof updateOrderSummary === 'function') {
+                    updateOrderSummary();
+                }
+            }
         });
 }
