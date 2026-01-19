@@ -2131,11 +2131,8 @@ require_once 'actions.php';
                                     <?php endif; ?>
                                     <?php if(!empty($row['driver_phone'])): ?>
                                     <div class="mt-2">
-                                        <a href="tel:+<?php echo $country_code; ?><?php echo e($row['driver_phone']); ?>" class="btn btn-sm btn-success me-1">
+                                        <a href="tel:+<?php echo $country_code; ?><?php echo e($row['driver_phone']); ?>" class="btn btn-sm btn-success">
                                             <i class="fas fa-phone me-1"></i><?php echo $t['call_driver'] ?? 'Call'; ?>
-                                        </a>
-                                        <a href="https://wa.me/<?php echo $country_code; ?><?php echo e($row['driver_phone']); ?>" target="_blank" class="btn btn-sm btn-outline-success">
-                                            <i class="fab fa-whatsapp"></i>
                                         </a>
                                     </div>
                                     <?php endif; ?>

@@ -159,6 +159,11 @@ function getAvatarColor($role) {
 function uploadAvatar($file, $userId) {
     global $uploads_dir, $conn;
 
+    // Fallback if $uploads_dir is not set
+    if (empty($uploads_dir)) {
+        $uploads_dir = dirname(__FILE__) . '/uploads';
+    }
+
     $allowed_types = ['image/jpeg', 'image/png', 'image/webp'];
     $max_size = 5 * 1024 * 1024; // 5MB
 
@@ -180,7 +185,9 @@ function uploadAvatar($file, $userId) {
     // Create user directory
     $user_dir = $uploads_dir . '/avatars/' . $userId;
     if (!is_dir($user_dir)) {
-        mkdir($user_dir, 0755, true);
+        if (!mkdir($user_dir, 0755, true)) {
+            return ['success' => false, 'error' => 'Failed to create upload directory'];
+        }
     }
 
     // Delete old avatar if exists
@@ -189,7 +196,7 @@ function uploadAvatar($file, $userId) {
         $stmt->execute([$userId]);
         $oldAvatar = $stmt->fetchColumn();
         if ($oldAvatar) {
-            $oldPath = __DIR__ . '/' . $oldAvatar;
+            $oldPath = dirname(__FILE__) . '/' . $oldAvatar;
             if (file_exists($oldPath)) {
                 unlink($oldPath);
             }
@@ -799,6 +806,7 @@ $text = [
         'tap_to_go_online' => 'اضغط للاتصال',
         'your_balance' => 'رصيدك',
         'whatsapp_recharge' => 'شحن عبر واتساب',
+        'recharge_note' => 'تواصل مع الدعم لإضافة رصيد إلى حسابك',
         'rating' => 'التقييم',
         'hello' => 'مرحباً',
         'start_your_day' => 'ابدأ يومك بنشاط!',
@@ -1249,6 +1257,7 @@ $text = [
         'tap_to_go_online' => 'Appuyez pour passer en ligne',
         'your_balance' => 'Votre solde',
         'whatsapp_recharge' => 'Recharger via WhatsApp',
+        'recharge_note' => 'Contactez le support pour ajouter des crédits à votre compte',
         'rating' => 'Note',
         'hello' => 'Bonjour',
         'start_your_day' => 'Commencez votre journée avec énergie!',
