@@ -214,26 +214,34 @@ function updateBulkRechargeButton() {
     const bulkBtn = document.getElementById('bulkRechargeBtn');
     const selectAll = document.getElementById('selectAllDrivers');
 
-    if (checkedBoxes.length > 0) {
-        bulkBtn.style.display = 'inline-block';
-        const bulkText = (typeof AppTranslations !== 'undefined' && AppTranslations['bulk_recharge']) ? AppTranslations['bulk_recharge'] : 'Bulk Recharge';
-        bulkBtn.innerHTML = '<i class="fas fa-coins"></i> ' + bulkText + ' (' + checkedBoxes.length + ')';
-    } else {
-        bulkBtn.style.display = 'none';
+    if (bulkBtn) {
+        if (checkedBoxes.length > 0) {
+            bulkBtn.style.display = 'inline-block';
+            const bulkText = (typeof AppTranslations !== 'undefined' && AppTranslations['bulk_recharge']) ? AppTranslations['bulk_recharge'] : 'Bulk Recharge';
+            bulkBtn.innerHTML = '<i class="fas fa-coins"></i> ' + bulkText + ' (' + checkedBoxes.length + ')';
+        } else {
+            bulkBtn.style.display = 'none';
+        }
     }
 
     // Update select all checkbox state
-    const allDriverCheckboxes = document.querySelectorAll('.driver-checkbox');
-    selectAll.checked = allDriverCheckboxes.length > 0 && checkedBoxes.length === allDriverCheckboxes.length;
+    if (selectAll) {
+        const allDriverCheckboxes = document.querySelectorAll('.driver-checkbox');
+        selectAll.checked = allDriverCheckboxes.length > 0 && checkedBoxes.length === allDriverCheckboxes.length;
+    }
 }
 
 function showBulkRechargeModal() {
     const checkedBoxes = document.querySelectorAll('.driver-checkbox:checked');
     const driverIds = Array.from(checkedBoxes).map(cb => cb.value).join(',');
 
-    document.getElementById('selectedDriverIds').value = driverIds;
-    document.getElementById('selectedDriverCount').textContent = checkedBoxes.length;
-    document.getElementById('bulkAmount').value = '';
+    const selectedDriverIds = document.getElementById('selectedDriverIds');
+    const selectedDriverCount = document.getElementById('selectedDriverCount');
+    const bulkAmount = document.getElementById('bulkAmount');
+    
+    if (selectedDriverIds) selectedDriverIds.value = driverIds;
+    if (selectedDriverCount) selectedDriverCount.textContent = checkedBoxes.length;
+    if (bulkAmount) bulkAmount.value = '';
 
     var modal = new bootstrap.Modal(document.getElementById('bulkRechargeModal'));
     modal.show();
@@ -267,12 +275,24 @@ function editPromoCode(promo) {
     modal.show();
 }
 
+// Initialize promo code input to auto-uppercase
+document.addEventListener('DOMContentLoaded', function() {
+    const promoCodeInput = document.getElementById('promoCode');
+    if (promoCodeInput) {
+        promoCodeInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+    }
+});
+
 function updateDiscountLabel() {
-    const type = document.getElementById('discountType').value;
+    const type = document.getElementById('discountType');
     const label = document.getElementById('discountLabel');
     const help = document.getElementById('discountHelp');
+    
+    if (!type || !label || !help) return;
 
-    if (type === 'percentage') {
+    if (type.value === 'percentage') {
         label.textContent = (typeof AppTranslations !== 'undefined' && AppTranslations['percentage']) ? AppTranslations['percentage'] : 'Percentage';
         help.textContent = (typeof AppTranslations !== 'undefined' && AppTranslations['percentage_help']) ? AppTranslations['percentage_help'] : 'Enter percentage (e.g., 20 for 20% off)';
         document.getElementById('discountValue').placeholder = 'e.g. 20';

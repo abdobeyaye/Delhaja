@@ -3475,3 +3475,33 @@ form.submitting button[type="submit"]::before {
 .list-group-flush .list-group-item:last-child {
     padding-bottom: 0;
 }
+
+/* Customer Info Box for Driver View */
+.customer-info-box {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.05));
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.customer-info-box .profile-avatar {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    font-size: 1.1rem;
+}
+
+.customer-info-box .profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.customer-info-box .btn-sm.rounded-circle {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+

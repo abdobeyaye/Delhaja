@@ -328,6 +328,22 @@ try {
         UNIQUE KEY unique_user_promo (user_id, promo_code_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+    // 8. Create Recharge History Table
+    $conn->exec("CREATE TABLE IF NOT EXISTS recharge_history (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        driver_id INT NOT NULL COMMENT 'Driver who received points',
+        admin_id INT NOT NULL COMMENT 'Admin who performed recharge',
+        amount INT NOT NULL COMMENT 'Points added',
+        previous_balance INT NOT NULL COMMENT 'Balance before recharge',
+        new_balance INT NOT NULL COMMENT 'Balance after recharge',
+        recharge_type ENUM('single', 'bulk') DEFAULT 'single' COMMENT 'Type of recharge',
+        notes TEXT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_driver (driver_id),
+        INDEX idx_admin (admin_id),
+        INDEX idx_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
     // ==========================================
     // SCHEMA MIGRATIONS (Add missing columns)
     // ==========================================

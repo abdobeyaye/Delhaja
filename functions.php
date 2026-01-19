@@ -827,7 +827,16 @@ $text = [
         'new_driver' => 'سائق جديد',
         'regular_driver' => 'سائق عادي',
         'pro_driver' => 'سائق محترف',
-        'vip_driver' => 'سائق VIP'
+        'vip_driver' => 'سائق VIP',
+        
+        // Recharge History
+        'recharge_history' => 'سجل الشحن',
+        'no_recharge_history' => 'لا يوجد سجل شحن بعد.',
+        'previous_balance' => 'الرصيد السابق',
+        'new_balance' => 'الرصيد الجديد',
+        'bulk' => 'جماعي',
+        'single' => 'فردي',
+        'call' => 'اتصال'
     ],
 
     'fr' => [
@@ -1278,7 +1287,16 @@ $text = [
         'new_driver' => 'Nouveau livreur',
         'regular_driver' => 'Livreur régulier',
         'pro_driver' => 'Livreur Pro',
-        'vip_driver' => 'Livreur VIP'
+        'vip_driver' => 'Livreur VIP',
+        
+        // Recharge History
+        'recharge_history' => 'Historique des recharges',
+        'no_recharge_history' => 'Pas encore d\'historique de recharge.',
+        'previous_balance' => 'Solde précédent',
+        'new_balance' => 'Nouveau solde',
+        'bulk' => 'Groupé',
+        'single' => 'Individuel',
+        'call' => 'Appeler'
     ]
 ];
 $t = $text[$lang];
