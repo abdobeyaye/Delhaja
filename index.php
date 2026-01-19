@@ -15,6 +15,9 @@ require_once 'auth.php';
 
 // Include action handlers
 require_once 'actions.php';
+
+// Track visitor (unique per IP per day)
+trackVisitor($conn, isset($_SESSION['user']) ? $_SESSION['user']['id'] : null);
 ?>
 
 <!DOCTYPE html>
@@ -54,7 +57,7 @@ require_once 'actions.php';
 
             <!-- Logo Area -->
             <div class="login-logo-area">
-                <img src="logo.png" alt="<?php echo $t['app_name']; ?>" class="login-logo-img" style="height: 80px; width: auto; margin-bottom: 15px;">
+                <img src="logo.png" alt="<?php echo $t['app_name']; ?>" class="login-logo-img" style="height: 120px; width: auto; margin-bottom: 15px;">
                 <h1 class="login-app-title"><?php echo $t['app_name']; ?></h1>
                 <p class="login-app-subtitle"><?php echo $t['app_desc']; ?></p>
             </div>
@@ -159,7 +162,7 @@ require_once 'actions.php';
     <nav class="navbar app-navbar sticky-top mb-4">
         <div class="container">
             <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="index.php">
-                <img src="logo.png" alt="<?php echo $t['app_name']; ?>" style="height: 40px; width: auto;" onerror="this.style.display='none'">
+                <img src="logo.png" alt="<?php echo $t['app_name']; ?>" style="height: 60px; width: auto;" onerror="this.style.display='none'">
                 <span class="text-primary d-none d-sm-inline"><?php echo $t['app_name']; ?></span>
             </a>
             <div class="d-flex align-items-center gap-2 gap-md-3">
@@ -498,6 +501,9 @@ require_once 'actions.php';
             // Average delivery time (in minutes) - for delivered orders
             $avgDeliveryTime = $conn->query("SELECT AVG(TIMESTAMPDIFF(MINUTE, accepted_at, delivered_at)) FROM orders1 WHERE status='delivered' AND accepted_at IS NOT NULL AND delivered_at IS NOT NULL")->fetchColumn();
             $avgDeliveryTime = $avgDeliveryTime ? round($avgDeliveryTime) : 0;
+            
+            // Visitor Statistics
+            $visitorStats = getVisitorStats($conn);
             ?>
 
             <!-- Enhanced Statistics Grid -->
@@ -707,6 +713,55 @@ require_once 'actions.php';
                                 </div>
                                 <div class="stat-icon-circle bg-warning-soft">
                                     <i class="fas fa-money-bill-wave text-warning"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visitor Statistics Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <div class="ultra-card">
+                        <div class="card-inner">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-eye text-info me-2"></i><?php echo $t['site_visitors'] ?? 'Site Visitors'; ?></h6>
+                            <div class="row g-3">
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.2));">
+                                        <div class="stat-icon-circle bg-info-soft mx-auto mb-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-clock text-info" style="font-size: 1rem;"></i>
+                                        </div>
+                                        <h4 class="mb-0 text-info"><?php echo number_format($visitorStats['today']); ?></h4>
+                                        <small class="text-muted"><?php echo $t['visitors_today'] ?? 'Today'; ?></small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, rgba(88, 75, 246, 0.1), rgba(88, 75, 246, 0.2));">
+                                        <div class="stat-icon-circle bg-primary-soft mx-auto mb-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-calendar-week text-primary" style="font-size: 1rem;"></i>
+                                        </div>
+                                        <h4 class="mb-0 text-primary"><?php echo number_format($visitorStats['this_week']); ?></h4>
+                                        <small class="text-muted"><?php echo $t['visitors_this_week'] ?? 'This Week'; ?></small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, rgba(0, 200, 81, 0.1), rgba(0, 200, 81, 0.2));">
+                                        <div class="stat-icon-circle bg-success-soft mx-auto mb-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-calendar-alt text-success" style="font-size: 1rem;"></i>
+                                        </div>
+                                        <h4 class="mb-0 text-success"><?php echo number_format($visitorStats['this_month']); ?></h4>
+                                        <small class="text-muted"><?php echo $t['visitors_this_month'] ?? 'This Month'; ?></small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.2));">
+                                        <div class="stat-icon-circle bg-warning-soft mx-auto mb-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-globe text-warning" style="font-size: 1rem;"></i>
+                                        </div>
+                                        <h4 class="mb-0 text-warning"><?php echo number_format($visitorStats['total']); ?></h4>
+                                        <small class="text-muted"><?php echo $t['total_visitors'] ?? 'Total Visitors'; ?></small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1846,7 +1901,7 @@ require_once 'actions.php';
                     <?php endif; ?>
                     <div class="d-flex gap-2">
                         <a href="https://wa.me/<?php echo $whatsapp_number; ?>?text=<?php echo urlencode('مرحبا، أرغب في شحن رصيد' . "\n" . 'المستخدم: ' . ($u['serial_no'] ?? $u['username']) . "\n" . 'الرقم: ' . ($u['phone'] ?? '')); ?>" target="_blank" class="recharge-btn whatsapp flex-grow-1 justify-content-center">
-                            <i class="fab fa-whatsapp"></i>
+                            <i class="fa-brands fa-whatsapp"></i>
                             <?php echo $t['whatsapp_recharge'] ?? 'WhatsApp to Recharge'; ?>
                         </a>
                     </div>
@@ -2248,7 +2303,7 @@ require_once 'actions.php';
                                         <i class="fas fa-phone"></i>
                                     </a>
                                     <a href="https://wa.me/<?php echo e($country_code . $row['client_phone']); ?>" target="_blank" class="btn btn-sm rounded-circle" style="background-color: #25D366; color: white;" title="WhatsApp">
-                                        <i class="fab fa-whatsapp"></i>
+                                        <i class="fa-brands fa-whatsapp"></i>
                                     </a>
                                 </div>
                                 <?php endif; ?>
@@ -2528,7 +2583,7 @@ require_once 'actions.php';
                                     <i class="fas fa-phone me-1"></i> <?php echo $t['call_driver'] ?? 'Call'; ?>
                                 </a>
                                 <a href="#" id="tracking-whatsapp-btn" class="btn btn-sm flex-fill rounded-pill" style="background-color: #25D366; color: white;">
-                                    <i class="fab fa-whatsapp me-1"></i> WhatsApp
+                                    <i class="fa-brands fa-whatsapp me-1"></i> WhatsApp
                                 </a>
                             </div>
                         </div>
@@ -2593,7 +2648,7 @@ require_once 'actions.php';
                                     <i class="fas fa-phone me-2"></i><?php echo $t['call_driver'] ?? 'Call Driver'; ?>
                                 </a>
                                 <a href="#" id="driverModalWhatsappBtn" class="btn btn-lg rounded-pill" style="background-color: #25D366; color: white;">
-                                    <i class="fab fa-whatsapp me-2"></i><?php echo $t['message_driver'] ?? 'WhatsApp'; ?>
+                                    <i class="fa-brands fa-whatsapp me-2"></i><?php echo $t['message_driver'] ?? 'WhatsApp'; ?>
                                 </a>
                             </div>
                             
