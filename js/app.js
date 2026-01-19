@@ -671,6 +671,45 @@ function acceptOrderFromBubble(orderId, btn) {
 // ==========================================
 // REAL-TIME NOTIFICATIONS POLLING
 // ==========================================
+// Track if user is actively filling out the new order form
+let isFillingOrderForm = false;
+
+// Set up form interaction tracking
+document.addEventListener('DOMContentLoaded', function() {
+    const newOrderForm = document.getElementById('newOrderForm');
+    if (newOrderForm) {
+        // Track when user starts interacting with the form
+        newOrderForm.addEventListener('focusin', function() {
+            isFillingOrderForm = true;
+        });
+        
+        // Track when user stops interacting with the form (with a delay to prevent premature reset)
+        newOrderForm.addEventListener('focusout', function() {
+            // Use a small delay to avoid flickering when moving between form fields
+            setTimeout(() => {
+                if (!newOrderForm.contains(document.activeElement)) {
+                    isFillingOrderForm = false;
+                }
+            }, 500);
+        });
+        
+        // Also track when zones are selected
+        const pickupZone = document.getElementById('pickupZone');
+        const dropoffZone = document.getElementById('dropoffZone');
+        
+        if (pickupZone) {
+            pickupZone.addEventListener('change', function() {
+                isFillingOrderForm = true;
+            });
+        }
+        if (dropoffZone) {
+            dropoffZone.addEventListener('change', function() {
+                isFillingOrderForm = true;
+            });
+        }
+    }
+});
+
 function initRealtimePolling(userRole, translations) {
     let lastCheck = Math.floor(Date.now() / 1000);
 
@@ -708,8 +747,11 @@ function initRealtimePolling(userRole, translations) {
                             );
                         });
 
-                        // Refresh page to show updated status
-                        setTimeout(() => location.reload(), 2000);
+                        // Only refresh page if user is not actively filling out the order form
+                        // This prevents the order summary from disappearing while the user is selecting zones
+                        if (!isFillingOrderForm) {
+                            setTimeout(() => location.reload(), 2000);
+                        }
                     }
                 }
             })
