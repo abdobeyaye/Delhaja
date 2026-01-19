@@ -2028,7 +2028,7 @@ trackVisitor($conn, isset($_SESSION['user']) ? $_SESSION['user']['id'] : null);
                                     </div>
                                     
                                     <!-- Discount Row (shown only when promo is applied) -->
-                                    <div class="d-flex justify-content-between align-items-center mb-2" id="discountRow" style="display: none !important;">
+                                    <div class="d-flex justify-content-between align-items-center mb-2" id="discountRow" style="display: none;">
                                         <span class="text-success"><i class="fas fa-tag me-2"></i><?php echo $t['discount'] ?? 'Discount'; ?>:</span>
                                         <span id="discountDisplay" class="text-success fw-bold">-0 <?php echo $t['mru'] ?? 'MRU'; ?></span>
                                     </div>
@@ -2854,11 +2854,9 @@ function updateOrderSummary() {
     // Show/hide discount row based on whether there's a discount
     if (currentDiscount > 0 && currentPromoValid) {
         discountRow.style.display = 'flex';
-        discountRow.style.setProperty('display', 'flex', 'important');
         discountDisplay.textContent = '-' + currentDiscount + ' ' + AppTranslations.mru;
     } else {
         discountRow.style.display = 'none';
-        discountRow.style.setProperty('display', 'none', 'important');
     }
     
     // Update final price
