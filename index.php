@@ -436,6 +436,8 @@ require_once 'actions.php';
             $totalDrivers = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='driver'")->fetchColumn();
             $activeDrivers = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='driver' AND status='active'")->fetchColumn();
             $verifiedDrivers = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='driver' AND is_verified=1")->fetchColumn();
+            $onlineDrivers = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='driver' AND is_online=1 AND status='active'")->fetchColumn();
+            $bannedDrivers = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='driver' AND status='banned'")->fetchColumn();
 
             $totalOrders = $conn->query("SELECT COUNT(*) FROM orders1")->fetchColumn();
             $pendingOrders = $conn->query("SELECT COUNT(*) FROM orders1 WHERE status='pending'")->fetchColumn();
@@ -445,9 +447,51 @@ require_once 'actions.php';
 
             $todayOrders = $conn->query("SELECT COUNT(*) FROM orders1 WHERE DATE(created_at) = CURDATE()")->fetchColumn();
             $todayDelivered = $conn->query("SELECT COUNT(*) FROM orders1 WHERE DATE(delivered_at) = CURDATE() AND status='delivered'")->fetchColumn();
+            $todayCancelled = $conn->query("SELECT COUNT(*) FROM orders1 WHERE DATE(cancelled_at) = CURDATE() AND status='cancelled'")->fetchColumn();
+            $todayPending = $conn->query("SELECT COUNT(*) FROM orders1 WHERE DATE(created_at) = CURDATE() AND status='pending'")->fetchColumn();
+
+            // Weekly Statistics
+            $weekOrders = $conn->query("SELECT COUNT(*) FROM orders1 WHERE YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)")->fetchColumn();
+            $weekDelivered = $conn->query("SELECT COUNT(*) FROM orders1 WHERE YEARWEEK(delivered_at, 1) = YEARWEEK(CURDATE(), 1) AND status='delivered'")->fetchColumn();
+            $weekRevenue = $conn->query("SELECT COALESCE(SUM(points_cost), 0) FROM orders1 WHERE YEARWEEK(delivered_at, 1) = YEARWEEK(CURDATE(), 1) AND status='delivered'")->fetchColumn();
+
+            // Monthly Statistics
+            $monthOrders = $conn->query("SELECT COUNT(*) FROM orders1 WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())")->fetchColumn();
+            $monthDelivered = $conn->query("SELECT COUNT(*) FROM orders1 WHERE MONTH(delivered_at) = MONTH(CURDATE()) AND YEAR(delivered_at) = YEAR(CURDATE()) AND status='delivered'")->fetchColumn();
+            $monthRevenue = $conn->query("SELECT COALESCE(SUM(points_cost), 0) FROM orders1 WHERE MONTH(delivered_at) = MONTH(CURDATE()) AND YEAR(delivered_at) = YEAR(CURDATE()) AND status='delivered'")->fetchColumn();
+
+            // New Users Statistics
+            $newCustomersToday = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='customer' AND DATE(created_at) = CURDATE()")->fetchColumn();
+            $newDriversToday = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='driver' AND DATE(created_at) = CURDATE()")->fetchColumn();
+            $newCustomersWeek = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='customer' AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)")->fetchColumn();
+            $newDriversWeek = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='driver' AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)")->fetchColumn();
+            $newCustomersMonth = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='customer' AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())")->fetchColumn();
+            $newDriversMonth = $conn->query("SELECT COUNT(*) FROM users1 WHERE role='driver' AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())")->fetchColumn();
 
             $totalRevenue = $conn->query("SELECT COALESCE(SUM(points_cost), 0) FROM orders1 WHERE status='delivered'")->fetchColumn();
             $todayRevenue = $conn->query("SELECT COALESCE(SUM(points_cost), 0) FROM orders1 WHERE DATE(delivered_at) = CURDATE() AND status='delivered'")->fetchColumn();
+            
+            // Total Delivery Value (sum of delivery prices)
+            $totalDeliveryValue = $conn->query("SELECT COALESCE(SUM(delivery_price), 0) FROM orders1 WHERE status='delivered'")->fetchColumn();
+            $todayDeliveryValue = $conn->query("SELECT COALESCE(SUM(delivery_price), 0) FROM orders1 WHERE DATE(delivered_at) = CURDATE() AND status='delivered'")->fetchColumn();
+            $weekDeliveryValue = $conn->query("SELECT COALESCE(SUM(delivery_price), 0) FROM orders1 WHERE YEARWEEK(delivered_at, 1) = YEARWEEK(CURDATE(), 1) AND status='delivered'")->fetchColumn();
+            $monthDeliveryValue = $conn->query("SELECT COALESCE(SUM(delivery_price), 0) FROM orders1 WHERE MONTH(delivered_at) = MONTH(CURDATE()) AND YEAR(delivered_at) = YEAR(CURDATE()) AND status='delivered'")->fetchColumn();
+            
+            // Top Performing Drivers
+            $topDrivers = $conn->query("SELECT u.id, u.full_name, u.username, u.phone, u.rating, u.avatar_url, COUNT(o.id) as order_count, COALESCE(SUM(o.points_cost), 0) as total_earnings
+                FROM users1 u 
+                LEFT JOIN orders1 o ON u.id = o.driver_id AND o.status = 'delivered'
+                WHERE u.role = 'driver'
+                GROUP BY u.id
+                ORDER BY order_count DESC
+                LIMIT 5")->fetchAll();
+            
+            // Most Active Zones
+            $topZones = $conn->query("SELECT pickup_zone, COUNT(*) as order_count FROM orders1 WHERE pickup_zone IS NOT NULL AND pickup_zone != '' GROUP BY pickup_zone ORDER BY order_count DESC LIMIT 5")->fetchAll();
+            
+            // Average delivery time (in minutes) - for delivered orders
+            $avgDeliveryTime = $conn->query("SELECT AVG(TIMESTAMPDIFF(MINUTE, accepted_at, delivered_at)) FROM orders1 WHERE status='delivered' AND accepted_at IS NOT NULL AND delivered_at IS NOT NULL")->fetchColumn();
+            $avgDeliveryTime = $avgDeliveryTime ? round($avgDeliveryTime) : 0;
             ?>
 
             <!-- Enhanced Statistics Grid -->
@@ -461,6 +505,9 @@ require_once 'actions.php';
                             </div>
                             <h3 class="stat-number mb-1"><?php echo number_format($totalCustomers); ?></h3>
                             <small class="text-muted text-uppercase fw-bold"><?php echo $t['customers'] ?? 'Customers'; ?></small>
+                            <div class="mt-2">
+                                <span class="badge bg-info" title="<?php echo $t['new_this_month'] ?? 'New this month'; ?>">+<?php echo $newCustomersMonth; ?> <?php echo $t['this_month'] ?? 'month'; ?></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -474,8 +521,8 @@ require_once 'actions.php';
                             <h3 class="stat-number mb-1"><?php echo number_format($totalDrivers); ?></h3>
                             <small class="text-muted text-uppercase fw-bold"><?php echo $t['drivers'] ?? 'Drivers'; ?></small>
                             <div class="mt-2">
-                                <span class="badge bg-success"><?php echo $activeDrivers; ?> <?php echo $t['active'] ?? 'Active'; ?></span>
-                                <span class="badge bg-primary"><?php echo $verifiedDrivers; ?> <?php echo $t['verified'] ?? 'Verified'; ?></span>
+                                <span class="badge bg-success" title="<?php echo $t['online'] ?? 'Online'; ?>"><?php echo $onlineDrivers; ?> <?php echo $t['online'] ?? 'Online'; ?></span>
+                                <span class="badge bg-primary" title="<?php echo $t['verified'] ?? 'Verified'; ?>"><?php echo $verifiedDrivers; ?> <?php echo $t['verified'] ?? 'Verified'; ?></span>
                             </div>
                         </div>
                     </div>
@@ -492,7 +539,7 @@ require_once 'actions.php';
                             <small class="text-muted text-uppercase fw-bold"><?php echo $t['total_orders'] ?? 'Total Orders'; ?></small>
                             <div class="mt-2">
                                 <span class="badge bg-warning text-dark"><?php echo $pendingOrders; ?> <?php echo $t['pending'] ?? 'Pending'; ?></span>
-                                <span class="badge bg-success"><?php echo $deliveredOrders; ?> <?php echo $t['delivered'] ?? 'Delivered'; ?></span>
+                                <span class="badge bg-info"><?php echo $activeOrders; ?> <?php echo $t['in_progress'] ?? 'Active'; ?></span>
                             </div>
                         </div>
                     </div>
@@ -508,15 +555,94 @@ require_once 'actions.php';
                             <small class="text-muted text-uppercase fw-bold"><?php echo $t['today_orders'] ?? 'Today\'s Orders'; ?></small>
                             <div class="mt-2">
                                 <span class="badge bg-success"><?php echo $todayDelivered; ?> <?php echo $t['delivered'] ?? 'Delivered'; ?></span>
+                                <span class="badge bg-warning text-dark"><?php echo $todayPending; ?> <?php echo $t['pending'] ?? 'Pending'; ?></span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Revenue and Performance Row -->
+            <!-- Detailed Statistics Row -->
             <div class="row g-3 mb-4">
+                <!-- Weekly Stats -->
                 <div class="col-md-4">
+                    <div class="ultra-card">
+                        <div class="card-inner">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-calendar-week text-primary me-2"></i><?php echo $t['this_week'] ?? 'This Week'; ?></h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted"><?php echo $t['orders'] ?? 'Orders'; ?></span>
+                                <strong><?php echo number_format($weekOrders); ?></strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted"><?php echo $t['delivered'] ?? 'Delivered'; ?></span>
+                                <strong class="text-success"><?php echo number_format($weekDelivered); ?></strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted"><?php echo $t['revenue'] ?? 'Revenue'; ?></span>
+                                <strong class="text-primary"><?php echo number_format($weekRevenue); ?> pts</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted"><?php echo $t['delivery_value'] ?? 'Delivery Value'; ?></span>
+                                <strong class="text-info"><?php echo number_format($weekDeliveryValue); ?> MRU</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Stats -->
+                <div class="col-md-4">
+                    <div class="ultra-card">
+                        <div class="card-inner">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-calendar-alt text-success me-2"></i><?php echo $t['this_month'] ?? 'This Month'; ?></h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted"><?php echo $t['orders'] ?? 'Orders'; ?></span>
+                                <strong><?php echo number_format($monthOrders); ?></strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted"><?php echo $t['delivered'] ?? 'Delivered'; ?></span>
+                                <strong class="text-success"><?php echo number_format($monthDelivered); ?></strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted"><?php echo $t['revenue'] ?? 'Revenue'; ?></span>
+                                <strong class="text-primary"><?php echo number_format($monthRevenue); ?> pts</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted"><?php echo $t['delivery_value'] ?? 'Delivery Value'; ?></span>
+                                <strong class="text-info"><?php echo number_format($monthDeliveryValue); ?> MRU</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Stats -->
+                <div class="col-md-4">
+                    <div class="ultra-card">
+                        <div class="card-inner">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-chart-pie text-warning me-2"></i><?php echo $t['performance'] ?? 'Performance'; ?></h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted"><?php echo $t['success_rate'] ?? 'Success Rate'; ?></span>
+                                <strong class="text-success"><?php echo $successRate = $totalOrders > 0 ? round(($deliveredOrders / $totalOrders) * 100, 1) : 0; ?>%</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted"><?php echo $t['cancelled'] ?? 'Cancelled'; ?></span>
+                                <strong class="text-danger"><?php echo number_format($cancelledOrders); ?></strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted"><?php echo $t['avg_delivery_time'] ?? 'Avg Delivery Time'; ?></span>
+                                <strong class="text-info"><?php echo $avgDeliveryTime; ?> <?php echo $t['min'] ?? 'min'; ?></strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted"><?php echo $t['total_delivery_value'] ?? 'Total Value'; ?></span>
+                                <strong class="text-primary"><?php echo number_format($totalDeliveryValue); ?> MRU</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
                     <div class="ultra-card">
                         <div class="card-inner">
                             <div class="d-flex justify-content-between align-items-center">
@@ -532,7 +658,7 @@ require_once 'actions.php';
                     </div>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="ultra-card">
                         <div class="card-inner">
                             <div class="d-flex justify-content-between align-items-center">
@@ -548,23 +674,98 @@ require_once 'actions.php';
                     </div>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="ultra-card">
                         <div class="card-inner">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <small class="text-muted d-block mb-1"><?php echo $t['success_rate'] ?? 'Success Rate'; ?></small>
-                                    <h4 class="mb-0 text-info">
-                                        <?php
-                                        $successRate = $totalOrders > 0 ? round(($deliveredOrders / $totalOrders) * 100, 1) : 0;
-                                        echo $successRate;
-                                        ?>%
-                                    </h4>
+                                    <small class="text-muted d-block mb-1"><?php echo $t['new_users_today'] ?? 'New Users Today'; ?></small>
+                                    <h4 class="mb-0 text-info"><?php echo $newCustomersToday + $newDriversToday; ?></h4>
                                 </div>
                                 <div class="stat-icon-circle bg-info-soft">
-                                    <i class="fas fa-percentage text-info"></i>
+                                    <i class="fas fa-user-plus text-info"></i>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="ultra-card">
+                        <div class="card-inner">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-muted d-block mb-1"><?php echo $t['today_delivery_value'] ?? 'Today\'s Value'; ?></small>
+                                    <h4 class="mb-0 text-warning"><?php echo number_format($todayDeliveryValue); ?> <small class="text-muted">MRU</small></h4>
+                                </div>
+                                <div class="stat-icon-circle bg-warning-soft">
+                                    <i class="fas fa-money-bill-wave text-warning"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Performers Row -->
+            <div class="row g-3 mb-4">
+                <!-- Top Drivers -->
+                <div class="col-md-6">
+                    <div class="ultra-card">
+                        <div class="card-inner">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-trophy text-warning me-2"></i><?php echo $t['top_drivers'] ?? 'Top Drivers'; ?></h6>
+                            <?php if(empty($topDrivers)): ?>
+                            <p class="text-muted text-center mb-0"><?php echo $t['no_data'] ?? 'No data available'; ?></p>
+                            <?php else: ?>
+                            <div class="list-group list-group-flush">
+                                <?php foreach($topDrivers as $index => $driver): 
+                                    $driverAvatarUrl = getAvatarUrl($driver);
+                                ?>
+                                <div class="list-group-item d-flex align-items-center gap-3 px-0 border-0">
+                                    <span class="badge bg-<?php echo $index == 0 ? 'warning' : ($index == 1 ? 'secondary' : 'light text-dark'); ?> rounded-circle" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;"><?php echo $index + 1; ?></span>
+                                    <div class="profile-avatar avatar-sm avatar-driver">
+                                        <?php if($driverAvatarUrl): ?>
+                                            <img src="<?php echo e($driverAvatarUrl); ?>" alt="">
+                                        <?php else: ?>
+                                            <?php echo getUserInitials($driver); ?>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold"><?php echo e($driver['full_name'] ?? $driver['username']); ?></div>
+                                        <small class="text-muted"><?php echo $driver['order_count']; ?> <?php echo $t['orders'] ?? 'orders'; ?></small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="text-warning"><i class="fas fa-star"></i> <?php echo number_format($driver['rating'], 1); ?></div>
+                                        <small class="text-muted"><?php echo number_format($driver['total_earnings']); ?> pts</small>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Zones -->
+                <div class="col-md-6">
+                    <div class="ultra-card">
+                        <div class="card-inner">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-map-marked-alt text-primary me-2"></i><?php echo $t['popular_zones'] ?? 'Popular Zones'; ?></h6>
+                            <?php if(empty($topZones)): ?>
+                            <p class="text-muted text-center mb-0"><?php echo $t['no_data'] ?? 'No data available'; ?></p>
+                            <?php else: ?>
+                            <div class="list-group list-group-flush">
+                                <?php foreach($topZones as $index => $zone): ?>
+                                <div class="list-group-item d-flex align-items-center justify-content-between px-0 border-0">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-<?php echo $index == 0 ? 'primary' : 'light text-dark'; ?>"><?php echo $index + 1; ?></span>
+                                        <span><?php echo ($lang == 'ar' && isset($zones[$zone['pickup_zone']])) ? $zones[$zone['pickup_zone']] : e($zone['pickup_zone']); ?></span>
+                                    </div>
+                                    <span class="badge bg-success"><?php echo $zone['order_count']; ?> <?php echo $t['orders'] ?? 'orders'; ?></span>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -1752,7 +1953,7 @@ require_once 'actions.php';
                 } elseif($role == 'customer') {
                     if ($showHistory) {
                         // Show customer's delivered and cancelled order history
-                        $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified,
+                        $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified, d.avatar_url as driver_avatar,
                                 (SELECT COUNT(*) FROM ratings r WHERE r.order_id = o.id AND r.rater_id = ?) as has_rated
                                 FROM orders1 o
                                 LEFT JOIN users1 d ON o.driver_id = d.id
@@ -1760,7 +1961,7 @@ require_once 'actions.php';
                                 ORDER BY o.id DESC LIMIT 50";
                     } else {
                         // Show customer's active orders
-                        $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified,
+                        $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified, d.avatar_url as driver_avatar,
                                 (SELECT COUNT(*) FROM ratings r WHERE r.order_id = o.id AND r.rater_id = ?) as has_rated
                                 FROM orders1 o
                                 LEFT JOIN users1 d ON o.driver_id = d.id
@@ -1877,26 +2078,63 @@ require_once 'actions.php';
                             </div>
                         </div>
 
-                        <?php if($role == 'customer' && ($st == 'accepted' || $st == 'picked_up') && !empty($row['driver_id'])): ?>
-                        <!-- Driver Info for Customer -->
-                        <div class="alert alert-info mb-3 py-2">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <i class="fas fa-motorcycle text-info"></i>
-                                <strong><?php echo e($row['driver_name'] ?? ($t['driver'] ?? 'Driver')); ?></strong>
-                                <?php if(!empty($row['driver_verified'])): ?>
-                                <span class="badge bg-success"><i class="fas fa-check-circle"></i></span>
-                                <?php endif; ?>
+                        <?php if($role == 'customer' && !empty($row['driver_id']) && ($st == 'accepted' || $st == 'picked_up' || $st == 'delivered')): ?>
+                        <!-- Enhanced Driver Info for Customer (active orders and history) -->
+                        <div class="driver-info-box mb-3 p-3 bg-light rounded-3 border">
+                            <div class="d-flex align-items-center gap-3">
+                                <?php 
+                                // Get driver avatar
+                                $driverAvatar = null;
+                                if (isset($row['driver_avatar'])) {
+                                    $driverAvatar = getAvatarUrl(['avatar_url' => $row['driver_avatar'] ?? null]);
+                                }
+                                ?>
+                                <div class="driver-avatar-lg">
+                                    <?php if($driverAvatar): ?>
+                                        <img src="<?php echo e($driverAvatar); ?>" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <?php else: ?>
+                                        <i class="fas fa-motorcycle"></i>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <strong class="text-dark"><?php echo e($row['driver_name'] ?? ($t['driver'] ?? 'Driver')); ?></strong>
+                                        <?php if(!empty($row['driver_verified'])): ?>
+                                        <span class="badge bg-success" title="<?php echo $t['driver_verified'] ?? 'Verified'; ?>"><i class="fas fa-check-circle"></i> <?php echo $t['verified'] ?? 'Verified'; ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if(!empty($row['driver_rating'])): ?>
+                                    <div class="text-warning small mb-1">
+                                        <i class="fas fa-star"></i> <?php echo number_format($row['driver_rating'], 1); ?> / 5
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php if(!empty($row['driver_phone'])): ?>
+                                    <div class="mt-2">
+                                        <a href="tel:+222<?php echo e($row['driver_phone']); ?>" class="btn btn-sm btn-success me-1">
+                                            <i class="fas fa-phone me-1"></i><?php echo $t['call_driver'] ?? 'Call'; ?>
+                                        </a>
+                                        <a href="https://wa.me/222<?php echo e($row['driver_phone']); ?>" target="_blank" class="btn btn-sm btn-outline-success">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </a>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="text-end">
+                                    <?php if($st == 'accepted'): ?>
+                                    <span class="badge bg-info"><?php echo $t['driver_on_way'] ?? 'On the way'; ?></span>
+                                    <?php elseif($st == 'picked_up'): ?>
+                                    <span class="badge bg-primary"><?php echo $t['on_the_way'] ?? 'Delivering'; ?></span>
+                                    <?php elseif($st == 'delivered'): ?>
+                                    <span class="badge bg-success"><?php echo $t['st_delivered'] ?? 'Delivered'; ?></span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            <?php if(!empty($row['driver_phone'])): ?>
-                            <div class="mb-2">
-                                <a href="tel:+222<?php echo e($row['driver_phone']); ?>" class="btn btn-sm btn-outline-success">
-                                    <i class="fas fa-phone me-1"></i>+222 <?php echo e($row['driver_phone']); ?>
-                                </a>
-                            </div>
-                            <?php endif; ?>
                             <?php if(!empty($row['accepted_at'])): ?>
-                            <div class="small text-muted">
+                            <div class="small text-muted mt-2 pt-2 border-top">
                                 <i class="fas fa-clock me-1"></i><?php echo $t['driver_assigned'] ?? 'Driver assigned'; ?>: <?php echo fmtDate($row['accepted_at']); ?>
+                                <?php if($st == 'delivered' && !empty($row['delivered_at'])): ?>
+                                <span class="ms-3"><i class="fas fa-check-double me-1"></i><?php echo $t['st_delivered'] ?? 'Delivered'; ?>: <?php echo fmtDate($row['delivered_at']); ?></span>
+                                <?php endif; ?>
                             </div>
                             <?php endif; ?>
                         </div>

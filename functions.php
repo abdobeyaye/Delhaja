@@ -728,7 +728,31 @@ $text = [
         'working_zones_note' => 'اختر المناطق التي تريد استلام الطلبات منها. اتركها فارغة لاستلام الطلبات من جميع المناطق.',
         'select_working_zones' => 'اختر مناطق العمل',
         'no_working_zones' => 'لم تحدد مناطق العمل بعد',
-        'no_working_zones_tip' => 'نصيحة: حدد مناطق عملك في الإعدادات لاستلام الطلبات من المناطق المفضلة فقط.'
+        'no_working_zones_tip' => 'نصيحة: حدد مناطق عملك في الإعدادات لاستلام الطلبات من المناطق المفضلة فقط.',
+
+        // Enhanced Admin Statistics
+        'new_this_month' => 'جديد هذا الشهر',
+        'in_progress' => 'قيد التنفيذ',
+        'orders' => 'الطلبات',
+        'revenue' => 'الإيرادات',
+        'delivery_value' => 'قيمة التوصيل',
+        'performance' => 'الأداء',
+        'cancelled' => 'ملغي',
+        'avg_delivery_time' => 'متوسط وقت التوصيل',
+        'total_delivery_value' => 'القيمة الإجمالية',
+        'new_users_today' => 'مستخدمون جدد اليوم',
+        'today_delivery_value' => 'قيمة اليوم',
+        'top_drivers' => 'أفضل السائقين',
+        'popular_zones' => 'المناطق الأكثر نشاطاً',
+        'no_data' => 'لا توجد بيانات',
+        'pending' => 'معلق',
+        
+        // Driver Info Display
+        'driver_info' => 'معلومات السائق',
+        'driver_phone' => 'هاتف السائق',
+        'contact_driver' => 'التواصل مع السائق',
+        'driver_rating' => 'تقييم السائق',
+        'order_driver' => 'السائق المكلف'
     ],
 
     'fr' => [
@@ -1113,7 +1137,31 @@ $text = [
         'working_zones_note' => 'Sélectionnez les zones où vous souhaitez recevoir des commandes. Laissez vide pour recevoir des commandes de toutes les zones.',
         'select_working_zones' => 'Sélectionner les zones de travail',
         'no_working_zones' => 'Aucune zone de travail sélectionnée',
-        'no_working_zones_tip' => 'Astuce: Définissez vos zones de travail dans les paramètres pour recevoir uniquement les commandes de vos zones préférées.'
+        'no_working_zones_tip' => 'Astuce: Définissez vos zones de travail dans les paramètres pour recevoir uniquement les commandes de vos zones préférées.',
+
+        // Enhanced Admin Statistics
+        'new_this_month' => 'Nouveaux ce mois',
+        'in_progress' => 'En cours',
+        'orders' => 'Commandes',
+        'revenue' => 'Revenus',
+        'delivery_value' => 'Valeur livraison',
+        'performance' => 'Performance',
+        'cancelled' => 'Annulées',
+        'avg_delivery_time' => 'Temps moyen',
+        'total_delivery_value' => 'Valeur totale',
+        'new_users_today' => 'Nouveaux utilisateurs',
+        'today_delivery_value' => 'Valeur aujourd\'hui',
+        'top_drivers' => 'Meilleurs livreurs',
+        'popular_zones' => 'Zones populaires',
+        'no_data' => 'Aucune donnée',
+        'pending' => 'En attente',
+        
+        // Driver Info Display
+        'driver_info' => 'Info livreur',
+        'driver_phone' => 'Téléphone du livreur',
+        'contact_driver' => 'Contacter le livreur',
+        'driver_rating' => 'Note du livreur',
+        'order_driver' => 'Livreur assigné'
     ]
 ];
 $t = $text[$lang];
