@@ -120,8 +120,14 @@ switch ($action) {
         }
 
         try {
-            // Get driver's working zones
+            // Get driver's working zones and validate against valid zones from config
             $driverWorkingZones = !empty($user['working_zones']) ? explode(',', $user['working_zones']) : [];
+            
+            // Validate working zones against valid zone list
+            $validZones = array_keys($zones);
+            $driverWorkingZones = array_filter($driverWorkingZones, function($zone) use ($validZones) {
+                return in_array($zone, $validZones);
+            });
             
             if (!empty($driverWorkingZones)) {
                 // Filter orders by driver's working zones (pickup OR dropoff zone must match)

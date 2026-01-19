@@ -1474,7 +1474,7 @@ require_once 'actions.php';
                                 <div class="d-flex flex-wrap gap-2 align-items-center">
                                     <small class="text-muted"><i class="fas fa-map-marked-alt me-1"></i><?php echo $t['working_zones'] ?? 'Working Zones'; ?>:</small>
                                     <?php foreach($driverWorkingZones as $zone): ?>
-                                    <span class="badge bg-primary"><?php echo ($lang == 'ar' && isset($zones[$zone])) ? $zones[$zone] : e($zone); ?></span>
+                                    <span class="badge bg-primary"><?php echo ($lang == 'ar' && isset($zones[$zone])) ? e($zones[$zone]) : e($zone); ?></span>
                                     <?php endforeach; ?>
                                     <a href="?settings=1" class="btn btn-sm btn-outline-secondary" style="border-radius: 20px; padding: 2px 10px;">
                                         <i class="fas fa-edit"></i>
@@ -1696,6 +1696,12 @@ require_once 'actions.php';
                     // Only show pending orders if driver is ONLINE
                     $isOnline = $u['is_online'] ?? 0;
                     $driverWorkingZones = !empty($u['working_zones']) ? explode(',', $u['working_zones']) : [];
+                    
+                    // Validate working zones against valid zone list
+                    $validZones = array_keys($zones);
+                    $driverWorkingZones = array_filter($driverWorkingZones, function($zone) use ($validZones) {
+                        return in_array($zone, $validZones);
+                    });
                     
                     if ($isOnline && !empty($driverWorkingZones)) {
                         // Online driver with working zones - show pending orders in their zones

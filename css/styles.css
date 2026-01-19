@@ -13,6 +13,7 @@
             --success-light: #86efac;
             --warning: #f59e0b;
             --warning-light: #fcd34d;
+            --warning-dark: #f97316;
             --danger: #ef4444;
             --danger-light: #fca5a5;
 
@@ -3374,7 +3375,7 @@ form.submitting button[type="submit"]::before {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: linear-gradient(135deg, var(--warning), #f97316);
+    background: linear-gradient(135deg, var(--warning), var(--warning-dark));
     color: white;
     padding: 4px 12px;
     border-radius: 20px;
