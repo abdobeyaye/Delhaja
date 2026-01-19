@@ -198,11 +198,13 @@ function uploadAvatar($file, $userId) {
         // Continue even if old avatar deletion fails
     }
 
-    // Generate filename
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
-        $ext = 'jpg'; // Default extension based on mime type
-    }
+    // Generate filename - use mime type to determine extension for reliability
+    $mimeToExt = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp'
+    ];
+    $ext = $mimeToExt[$mime] ?? 'jpg';
     $filename = 'avatar_' . time() . '.' . $ext;
     $filepath = $user_dir . '/' . $filename;
 
@@ -256,6 +258,7 @@ function getDriverStats($conn, $driverId) {
         'earnings_week' => 0,
         'earnings_month' => 0,
         'this_month' => 0,
+        'orders_this_month' => 0,
         'active_orders' => 0,
         'rating' => 5.0
     ];
@@ -271,6 +274,11 @@ function getDriverStats($conn, $driverId) {
     $stmt = $conn->prepare("SELECT COUNT(*) FROM orders1 WHERE driver_id = ? AND status = 'delivered' AND DATE(delivered_at) = CURDATE()");
     $stmt->execute([$driverId]);
     $stats['completed_today'] = $stmt->fetchColumn();
+
+    // Orders this month (count)
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM orders1 WHERE driver_id = ? AND status = 'delivered' AND MONTH(delivered_at) = MONTH(NOW()) AND YEAR(delivered_at) = YEAR(NOW())");
+    $stmt->execute([$driverId]);
+    $stats['orders_this_month'] = $stmt->fetchColumn();
 
     // Earnings today (points spent by driver for orders)
     $stmt = $conn->prepare("SELECT COALESCE(SUM(points_cost), 0) FROM orders1 WHERE driver_id = ? AND status = 'delivered' AND DATE(delivered_at) = CURDATE()");

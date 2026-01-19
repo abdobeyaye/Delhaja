@@ -1545,9 +1545,9 @@ require_once 'actions.php';
                 $driverStats = getDriverStats($conn, $uid);
 
                 // Enhanced driver tier calculation
-                $completedOrders = (int)$driverStats['total_delivered'];
-                $avgRating = (float)($u['rating'] ?? 5.0); // Default to 5.0 for new drivers
-                $thisMonthOrders = (int)$driverStats['this_month'];
+                $completedOrders = (int)$driverStats['total_orders'];
+                $avgRating = (float)$driverStats['rating']; // Use rating from stats (defaults to 5.0)
+                $thisMonthOrders = (int)$driverStats['orders_this_month'];
                 $isVerified = !empty($u['is_verified']);
                 
                 // Calculate tier score based on multiple factors
