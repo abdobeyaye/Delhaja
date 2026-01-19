@@ -619,9 +619,10 @@ require_once 'actions.php';
                     <div class="ultra-card">
                         <div class="card-inner">
                             <h6 class="fw-bold mb-3"><i class="fas fa-chart-pie text-warning me-2"></i><?php echo $t['performance'] ?? 'Performance'; ?></h6>
+                            <?php $successRate = $totalOrders > 0 ? round(($deliveredOrders / $totalOrders) * 100, 1) : 0; ?>
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted"><?php echo $t['success_rate'] ?? 'Success Rate'; ?></span>
-                                <strong class="text-success"><?php echo $successRate = $totalOrders > 0 ? round(($deliveredOrders / $totalOrders) * 100, 1) : 0; ?>%</strong>
+                                <strong class="text-success"><?php echo $successRate; ?>%</strong>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted"><?php echo $t['cancelled'] ?? 'Cancelled'; ?></span>
@@ -759,7 +760,7 @@ require_once 'actions.php';
                                 <div class="list-group-item d-flex align-items-center justify-content-between px-0 border-0">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="badge bg-<?php echo $index == 0 ? 'primary' : 'light text-dark'; ?>"><?php echo $index + 1; ?></span>
-                                        <span><?php echo ($lang == 'ar' && isset($zones[$zone['pickup_zone']])) ? $zones[$zone['pickup_zone']] : e($zone['pickup_zone']); ?></span>
+                                        <span><?php echo ($lang == 'ar' && isset($zones[$zone['pickup_zone']])) ? e($zones[$zone['pickup_zone']]) : e($zone['pickup_zone']); ?></span>
                                     </div>
                                     <span class="badge bg-success"><?php echo $zone['order_count']; ?> <?php echo $t['orders'] ?? 'orders'; ?></span>
                                 </div>
@@ -2084,10 +2085,7 @@ require_once 'actions.php';
                             <div class="d-flex align-items-center gap-3">
                                 <?php 
                                 // Get driver avatar
-                                $driverAvatar = null;
-                                if (isset($row['driver_avatar'])) {
-                                    $driverAvatar = getAvatarUrl(['avatar_url' => $row['driver_avatar'] ?? null]);
-                                }
+                                $driverAvatar = !empty($row['driver_avatar']) ? getAvatarUrl(['avatar_url' => $row['driver_avatar']]) : null;
                                 ?>
                                 <div class="driver-avatar-lg">
                                     <?php if($driverAvatar): ?>
@@ -2110,10 +2108,10 @@ require_once 'actions.php';
                                     <?php endif; ?>
                                     <?php if(!empty($row['driver_phone'])): ?>
                                     <div class="mt-2">
-                                        <a href="tel:+222<?php echo e($row['driver_phone']); ?>" class="btn btn-sm btn-success me-1">
+                                        <a href="tel:+<?php echo $country_code; ?><?php echo e($row['driver_phone']); ?>" class="btn btn-sm btn-success me-1">
                                             <i class="fas fa-phone me-1"></i><?php echo $t['call_driver'] ?? 'Call'; ?>
                                         </a>
-                                        <a href="https://wa.me/222<?php echo e($row['driver_phone']); ?>" target="_blank" class="btn btn-sm btn-outline-success">
+                                        <a href="https://wa.me/<?php echo $country_code; ?><?php echo e($row['driver_phone']); ?>" target="_blank" class="btn btn-sm btn-outline-success">
                                             <i class="fab fa-whatsapp"></i>
                                         </a>
                                     </div>
