@@ -671,6 +671,92 @@ function acceptOrderFromBubble(orderId, btn) {
 // ==========================================
 // REAL-TIME NOTIFICATIONS POLLING
 // ==========================================
+
+// Configuration constants for form interaction tracking
+const FORM_BLUR_RESET_DELAY_MS = 500;       // Delay before resetting flag when form loses focus
+const ZONE_SELECTION_RESET_DELAY_MS = 10000; // Delay before resetting flag after zone selection
+
+// Track if user is actively filling out the new order form
+let isFillingOrderForm = false;
+
+// Timeout ID for resetting form interaction flag
+let formInteractionTimeout = null;
+
+// Helper function to clear and reset the interaction timeout
+function clearFormInteractionTimeout() {
+    if (formInteractionTimeout !== null) {
+        clearTimeout(formInteractionTimeout);
+        formInteractionTimeout = null;
+    }
+}
+
+// Helper function to check if an element still exists in DOM
+function isElementInDOM(element) {
+    return element && document.body.contains(element);
+}
+
+// Helper function to check if focus is inside a form
+function isFocusInsideForm(formElement) {
+    // If formElement is null, no active element, or body is focused, consider focus as outside
+    const activeElement = document.activeElement;
+    if (!formElement || !activeElement || activeElement === document.body) {
+        return false;
+    }
+    return formElement.contains(activeElement);
+}
+
+// Set up form interaction tracking
+document.addEventListener('DOMContentLoaded', function() {
+    const newOrderForm = document.getElementById('newOrderForm');
+    if (!newOrderForm) return;
+    
+    // Track when user starts interacting with the form
+    newOrderForm.addEventListener('focusin', function() {
+        isFillingOrderForm = true;
+        clearFormInteractionTimeout();
+    });
+    
+    // Track when user stops interacting with the form (with a delay to prevent premature reset)
+    newOrderForm.addEventListener('focusout', function() {
+        // Clear any existing timeout first to prevent memory leaks
+        clearFormInteractionTimeout();
+        
+        // Use a delay to avoid flickering when moving between form fields
+        formInteractionTimeout = setTimeout(function() {
+            // Check if form still exists in DOM and if focus moved outside
+            if (isElementInDOM(newOrderForm) && !isFocusInsideForm(newOrderForm)) {
+                isFillingOrderForm = false;
+            }
+        }, FORM_BLUR_RESET_DELAY_MS);
+    });
+    
+    // Also track when zones are selected - set flag and schedule reset
+    const pickupZone = document.getElementById('pickupZone');
+    const dropoffZone = document.getElementById('dropoffZone');
+    
+    function handleZoneChange() {
+        isFillingOrderForm = true;
+        // Clear any existing timeout first to prevent memory leaks
+        clearFormInteractionTimeout();
+        
+        // Schedule flag reset after a reasonable time
+        // This gives the user time to continue filling the form
+        formInteractionTimeout = setTimeout(function() {
+            // Only reset if form still exists and focus is outside the form
+            if (isElementInDOM(newOrderForm) && !isFocusInsideForm(newOrderForm)) {
+                isFillingOrderForm = false;
+            }
+        }, ZONE_SELECTION_RESET_DELAY_MS);
+    }
+    
+    if (pickupZone) {
+        pickupZone.addEventListener('change', handleZoneChange);
+    }
+    if (dropoffZone) {
+        dropoffZone.addEventListener('change', handleZoneChange);
+    }
+});
+
 function initRealtimePolling(userRole, translations) {
     let lastCheck = Math.floor(Date.now() / 1000);
 
@@ -708,8 +794,11 @@ function initRealtimePolling(userRole, translations) {
                             );
                         });
 
-                        // Refresh page to show updated status
-                        setTimeout(() => location.reload(), 2000);
+                        // Only refresh page if user is not actively filling out the order form
+                        // This prevents the order summary from disappearing while the user is selecting zones
+                        if (!isFillingOrderForm) {
+                            setTimeout(() => location.reload(), 2000);
+                        }
                     }
                 }
             })
