@@ -126,8 +126,12 @@ require_once 'actions.php';
 
             <!-- Contact Hub -->
             <div class="login-contact-hub">
-                <a href="tel:+<?php echo $whatsapp_number; ?>" class="login-social-btn phone" title="<?php echo $t['call_us'] ?? 'Call Us'; ?>">
+                <a href="tel:<?php echo str_replace(' ', '', $help_phone); ?>" class="login-social-btn phone" title="<?php echo $t['call_us'] ?? 'Call Us'; ?>">
                     <i class="fa-solid fa-phone"></i>
+                </a>
+
+                <a href="https://wa.me/<?php echo $whatsapp_number; ?>" class="login-social-btn whatsapp" target="_blank" title="WhatsApp">
+                    <i class="fa-brands fa-whatsapp"></i>
                 </a>
 
                 <a href="mailto:<?php echo $help_email; ?>" class="login-social-btn email" title="<?php echo $help_email; ?>">
@@ -846,10 +850,10 @@ require_once 'actions.php';
                                                     <button class="btn btn-sm btn-outline-primary flex-grow-1" onclick="editUser(<?php echo htmlspecialchars(json_encode($user)); ?>)">
                                                         <i class="fas fa-edit me-1"></i><?php echo $t['edit'] ?? 'Edit'; ?>
                                                     </button>
-                                                    <a href="?toggle_ban=<?php echo $user['id']; ?>" class="btn btn-sm btn-<?php echo $user['status']=='active'?'warning':'success'; ?>" onclick="return confirm('Confirm?')">
+                                                    <a href="?toggle_ban=<?php echo $user['id']; ?>" class="btn btn-sm btn-<?php echo $user['status']=='active'?'warning':'success'; ?>" onclick="return confirm('<?php echo $t['confirm_action'] ?? 'Confirm?'; ?>')">
                                                         <i class="fas fa-<?php echo $user['status']=='active'?'ban':'check'; ?>"></i>
                                                     </a>
-                                                    <a href="?delete_user=<?php echo $user['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete permanently?')">
+                                                    <a href="?delete_user=<?php echo $user['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('<?php echo $t['delete_permanently'] ?? 'Delete permanently?'; ?>')">
                                                         <i class="fas fa-trash"></i>
                                                     </a>
                                                 </div>
@@ -960,10 +964,10 @@ require_once 'actions.php';
                                                     <button class="btn btn-sm btn-outline-primary" onclick="editUser(<?php echo htmlspecialchars(json_encode($driver)); ?>)">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <a href="?toggle_ban=<?php echo $driver['id']; ?>" class="btn btn-sm btn-<?php echo $driver['status']=='active'?'warning':'success'; ?>" onclick="return confirm('Confirm?')">
+                                                    <a href="?toggle_ban=<?php echo $driver['id']; ?>" class="btn btn-sm btn-<?php echo $driver['status']=='active'?'warning':'success'; ?>" onclick="return confirm('<?php echo $t['confirm_action'] ?? 'Confirm?'; ?>')">
                                                         <i class="fas fa-<?php echo $driver['status']=='active'?'ban':'check'; ?>"></i>
                                                     </a>
-                                                    <a href="?delete_user=<?php echo $driver['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete permanently?')">
+                                                    <a href="?delete_user=<?php echo $driver['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('<?php echo $t['delete_permanently'] ?? 'Delete permanently?'; ?>')">
                                                         <i class="fas fa-trash"></i>
                                                     </a>
                                                 </div>
@@ -1049,11 +1053,11 @@ require_once 'actions.php';
                                                 <i class="fas fa-edit me-1"></i><?php echo $t['edit'] ?? 'Edit'; ?>
                                             </button>
                                             <?php if($st == 'pending' || $st == 'accepted'): ?>
-                                            <a href="?cancel_order=<?php echo $order['id']; ?>" class="btn btn-sm btn-outline-warning" onclick="return confirm('Cancel this order?')">
+                                            <a href="?cancel_order=<?php echo $order['id']; ?>" class="btn btn-sm btn-outline-warning" onclick="return confirm('<?php echo $t['confirm_cancel'] ?? 'Cancel this order?'; ?>')">
                                                 <i class="fas fa-times"></i>
                                             </a>
                                             <?php endif; ?>
-                                            <a href="?delete_order=<?php echo $order['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete permanently?')">
+                                            <a href="?delete_order=<?php echo $order['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('<?php echo $t['delete_permanently'] ?? 'Delete permanently?'; ?>')">
                                                 <i class="fas fa-trash"></i>
                                             </a>
                                         </div>
@@ -1270,7 +1274,7 @@ require_once 'actions.php';
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title"><i class="fas fa-edit"></i> <?php echo $t['edit']; ?> User</h5>
+                            <h5 class="modal-title"><i class="fas fa-edit"></i> <?php echo $t['edit_user']; ?></h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <form method="POST">
@@ -1472,7 +1476,7 @@ require_once 'actions.php';
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo $t['cancel']; ?></button>
-                                <button type="submit" name="admin_add_order" class="btn btn-success">Add Order</button>
+                                <button type="submit" name="admin_add_order" class="btn btn-success"><?php echo $t['add_order']; ?></button>
                             </div>
                         </form>
                     </div>
@@ -1540,26 +1544,45 @@ require_once 'actions.php';
             if($role == 'driver') {
                 $driverStats = getDriverStats($conn, $uid);
 
-                // Calculate driver priority tier
+                // Enhanced driver tier calculation
                 $completedOrders = (int)$driverStats['total_orders'];
-                $avgRating = (float)($u['rating'] ?? 0);
+                $avgRating = (float)$driverStats['rating']; // Use rating from stats (defaults to 5.0)
+                $thisMonthOrders = (int)$driverStats['orders_this_month'];
+                $isVerified = !empty($u['is_verified']);
+                
+                // Calculate tier score based on multiple factors
+                // - Completed orders (weight: 40%)
+                // - Rating (weight: 30%)
+                // - Monthly activity (weight: 20%)
+                // - Verification status (weight: 10%)
+                
+                $orderScore = min($completedOrders / 100, 1) * 40; // Max 40 points at 100+ orders
+                $ratingScore = ($avgRating / 5) * 30; // Max 30 points at 5.0 rating
+                $activityScore = min($thisMonthOrders / 20, 1) * 20; // Max 20 points at 20+ orders this month
+                $verificationScore = $isVerified ? 10 : 0; // 10 points if verified
+                
+                $totalScore = $orderScore + $ratingScore + $activityScore + $verificationScore;
 
+                // Determine tier based on total score and minimum requirements
                 $priorityTier = 4; // Default: New driver
                 $priorityBadge = $t['new_driver'] ?? 'New Driver';
                 $priorityColor = 'secondary';
                 $priorityIcon = 'fa-user';
 
-                if ($completedOrders >= 50 && $avgRating >= 4) {
+                if ($totalScore >= 70 && $completedOrders >= 50 && $avgRating >= 4.5 && $isVerified) {
+                    // VIP: High score, 50+ orders, 4.5+ rating, verified
                     $priorityTier = 1;
                     $priorityBadge = $t['vip_driver'] ?? 'VIP Driver';
                     $priorityColor = 'warning';
                     $priorityIcon = 'fa-crown';
-                } elseif ($completedOrders >= 20 && $avgRating >= 3) {
+                } elseif ($totalScore >= 50 && $completedOrders >= 20 && $avgRating >= 4.0) {
+                    // Pro: Good score, 20+ orders, 4.0+ rating
                     $priorityTier = 2;
                     $priorityBadge = $t['pro_driver'] ?? 'Pro Driver';
                     $priorityColor = 'primary';
                     $priorityIcon = 'fa-medal';
-                } elseif ($completedOrders >= 5) {
+                } elseif ($totalScore >= 25 && $completedOrders >= 5 && $avgRating >= 3.5) {
+                    // Regular: Moderate score, 5+ orders, 3.5+ rating
                     $priorityTier = 3;
                     $priorityBadge = $t['regular_driver'] ?? 'Regular Driver';
                     $priorityColor = 'info';

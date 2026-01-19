@@ -516,6 +516,12 @@
             border-color: var(--primary);
             box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
         }
+        .login-social-btn.whatsapp:hover {
+            background: #25D366;
+            color: white;
+            border-color: #25D366;
+            box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
+        }
         .login-social-btn.email:hover {
             background: #EA4335;
             color: white;
