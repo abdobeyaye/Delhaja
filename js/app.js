@@ -325,10 +325,14 @@ function _showOrderTracking(order, translations) {
     document.getElementById('tracking-driver-name').textContent = order.driver_name;
     document.getElementById('tracking-driver-rating').innerHTML = '<i class="fas fa-star"></i> ' + parseFloat(order.driver_rating).toFixed(1);
 
-    // Set avatar
+    // Set avatar (escape src attribute to prevent XSS)
     const avatarEl = document.getElementById('tracking-driver-avatar');
     if (order.driver_avatar) {
-        avatarEl.innerHTML = '<img src="' + order.driver_avatar + '" alt="Driver">';
+        const img = document.createElement('img');
+        img.src = order.driver_avatar;
+        img.alt = 'Driver';
+        avatarEl.innerHTML = '';
+        avatarEl.appendChild(img);
     } else {
         avatarEl.innerHTML = '<i class="fas fa-user"></i>';
     }
@@ -337,9 +341,14 @@ function _showOrderTracking(order, translations) {
     const verifiedBadge = document.getElementById('tracking-verified-badge');
     verifiedBadge.style.display = order.driver_verified ? 'inline-block' : 'none';
 
-    // Set contact buttons
+    // Set contact buttons (phone call and WhatsApp)
     if (order.driver_phone) {
-        document.getElementById('tracking-call-btn').href = 'tel:+222' + order.driver_phone;
+        const countryCode = (typeof AppConfig !== 'undefined' && AppConfig.countryCode) ? AppConfig.countryCode : '222';
+        document.getElementById('tracking-call-btn').href = 'tel:+' + countryCode + order.driver_phone;
+        const whatsappBtn = document.getElementById('tracking-whatsapp-btn');
+        if (whatsappBtn) {
+            whatsappBtn.href = 'https://wa.me/' + countryCode + order.driver_phone;
+        }
     }
 
     // Set order details
