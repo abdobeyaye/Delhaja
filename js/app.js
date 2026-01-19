@@ -674,6 +674,9 @@ function acceptOrderFromBubble(orderId, btn) {
 // Track if user is actively filling out the new order form
 let isFillingOrderForm = false;
 
+// Timeout ID for resetting form interaction flag
+let formInteractionTimeout = null;
+
 // Set up form interaction tracking
 document.addEventListener('DOMContentLoaded', function() {
     const newOrderForm = document.getElementById('newOrderForm');
@@ -681,31 +684,49 @@ document.addEventListener('DOMContentLoaded', function() {
         // Track when user starts interacting with the form
         newOrderForm.addEventListener('focusin', function() {
             isFillingOrderForm = true;
+            // Clear any pending timeout when user focuses back on form
+            if (formInteractionTimeout) {
+                clearTimeout(formInteractionTimeout);
+                formInteractionTimeout = null;
+            }
         });
         
         // Track when user stops interacting with the form (with a delay to prevent premature reset)
         newOrderForm.addEventListener('focusout', function() {
-            // Use a small delay to avoid flickering when moving between form fields
-            setTimeout(() => {
-                if (!newOrderForm.contains(document.activeElement)) {
+            // Use a delay to avoid flickering when moving between form fields
+            formInteractionTimeout = setTimeout(() => {
+                // Check if newOrderForm still exists and if focus moved outside
+                if (newOrderForm && !newOrderForm.contains(document.activeElement)) {
                     isFillingOrderForm = false;
                 }
             }, 500);
         });
         
-        // Also track when zones are selected
+        // Also track when zones are selected - set flag and schedule reset
         const pickupZone = document.getElementById('pickupZone');
         const dropoffZone = document.getElementById('dropoffZone');
         
+        function handleZoneChange() {
+            isFillingOrderForm = true;
+            // Clear any pending timeout
+            if (formInteractionTimeout) {
+                clearTimeout(formInteractionTimeout);
+            }
+            // Schedule flag reset after a reasonable time (10 seconds)
+            // This gives the user time to continue filling the form
+            formInteractionTimeout = setTimeout(() => {
+                // Only reset if focus is outside the form
+                if (newOrderForm && !newOrderForm.contains(document.activeElement)) {
+                    isFillingOrderForm = false;
+                }
+            }, 10000);
+        }
+        
         if (pickupZone) {
-            pickupZone.addEventListener('change', function() {
-                isFillingOrderForm = true;
-            });
+            pickupZone.addEventListener('change', handleZoneChange);
         }
         if (dropoffZone) {
-            dropoffZone.addEventListener('change', function() {
-                isFillingOrderForm = true;
-            });
+            dropoffZone.addEventListener('change', handleZoneChange);
         }
     }
 });
