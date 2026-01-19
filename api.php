@@ -109,10 +109,35 @@ switch ($action) {
             exit();
         }
 
+        // Check if driver is online - if not, don't return any pending orders
+        if (empty($user['is_online'])) {
+            echo json_encode([
+                'success' => true,
+                'orders' => [],
+                'message' => 'Driver is offline'
+            ]);
+            exit();
+        }
+
         try {
-            // Get all pending orders (no GPS filtering)
-            $stmt = $conn->prepare("SELECT id, details, address, client_phone, pickup_zone, dropoff_zone, delivery_price, created_at FROM orders1 WHERE status = 'pending' ORDER BY id DESC LIMIT 20");
-            $stmt->execute();
+            // Get driver's working zones
+            $driverWorkingZones = !empty($user['working_zones']) ? explode(',', $user['working_zones']) : [];
+            
+            if (!empty($driverWorkingZones)) {
+                // Filter orders by driver's working zones (pickup OR dropoff zone must match)
+                $zonePlaceholders = implode(',', array_fill(0, count($driverWorkingZones), '?'));
+                $sql = "SELECT id, details, address, client_phone, pickup_zone, dropoff_zone, delivery_price, created_at 
+                        FROM orders1 
+                        WHERE status = 'pending' AND (pickup_zone IN ($zonePlaceholders) OR dropoff_zone IN ($zonePlaceholders))
+                        ORDER BY id DESC LIMIT 20";
+                $stmt = $conn->prepare($sql);
+                $params = array_merge($driverWorkingZones, $driverWorkingZones);
+                $stmt->execute($params);
+            } else {
+                // No working zones set - show all pending orders
+                $stmt = $conn->prepare("SELECT id, details, address, client_phone, pickup_zone, dropoff_zone, delivery_price, created_at FROM orders1 WHERE status = 'pending' ORDER BY id DESC LIMIT 20");
+                $stmt->execute();
+            }
             $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             echo json_encode([

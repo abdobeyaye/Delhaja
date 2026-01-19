@@ -502,6 +502,8 @@ $text = [
         'banned' => 'محظور',
         'online' => 'متصل',
         'offline' => 'غير متصل',
+        'offline_warning' => 'أنت غير متصل',
+        'offline_warning_desc' => 'اذهب للوضع المتصل لاستلام طلبات جديدة',
 
         // Actions
         'edit' => 'تعديل',
@@ -623,8 +625,9 @@ $text = [
         // Driver Enhanced
         'go_online' => 'أصبح متصلاً',
         'go_offline' => 'أصبح غير متصل',
-        'you_are_online' => 'أنت متصل الآن',
+        'you_are_online' => 'أنت متصل الآن وستستلم طلبات جديدة',
         'you_are_offline' => 'أنت غير متصل',
+        'you_are_offline_no_orders' => 'أنت غير متصل ولن تستلم طلبات جديدة',
         'earnings' => 'الأرباح',
         'my_earnings' => 'أرباحي',
         'today_earnings' => 'أرباح اليوم',
@@ -716,7 +719,14 @@ $text = [
         'from_zone' => 'من',
         'to_zone' => 'إلى',
         'zone_required' => 'يرجى اختيار منطقة الاستلام والتوصيل',
-        'address_placeholder' => 'العنوان التفصيلي (اختياري)'
+        'address_placeholder' => 'العنوان التفصيلي (اختياري)',
+
+        // Working Zones (Driver)
+        'working_zones' => 'مناطق العمل',
+        'working_zones_note' => 'اختر المناطق التي تريد استلام الطلبات منها. اتركها فارغة لاستلام الطلبات من جميع المناطق.',
+        'select_working_zones' => 'اختر مناطق العمل',
+        'no_working_zones' => 'لم تحدد مناطق العمل بعد',
+        'no_working_zones_tip' => 'نصيحة: حدد مناطق عملك في الإعدادات لاستلام الطلبات من المناطق المفضلة فقط.'
     ],
 
     'fr' => [
@@ -875,6 +885,8 @@ $text = [
         'banned' => 'Banni',
         'online' => 'En ligne',
         'offline' => 'Hors ligne',
+        'offline_warning' => 'Vous êtes hors ligne',
+        'offline_warning_desc' => 'Passez en ligne pour recevoir de nouvelles commandes',
 
         // Actions
         'edit' => 'Modifier',
@@ -996,8 +1008,9 @@ $text = [
         // Driver Enhanced
         'go_online' => 'Passer en ligne',
         'go_offline' => 'Passer hors ligne',
-        'you_are_online' => 'Vous êtes en ligne',
+        'you_are_online' => 'Vous êtes en ligne et recevrez de nouvelles commandes',
         'you_are_offline' => 'Vous êtes hors ligne',
+        'you_are_offline_no_orders' => 'Vous êtes hors ligne et ne recevrez pas de nouvelles commandes',
         'earnings' => 'Gains',
         'my_earnings' => 'Mes gains',
         'today_earnings' => 'Gains du jour',
@@ -1089,7 +1102,14 @@ $text = [
         'from_zone' => 'De',
         'to_zone' => 'À',
         'zone_required' => 'Veuillez sélectionner les zones de ramassage et de livraison',
-        'address_placeholder' => 'Adresse détaillée (optionnel)'
+        'address_placeholder' => 'Adresse détaillée (optionnel)',
+
+        // Working Zones (Driver)
+        'working_zones' => 'Zones de travail',
+        'working_zones_note' => 'Sélectionnez les zones où vous souhaitez recevoir des commandes. Laissez vide pour recevoir des commandes de toutes les zones.',
+        'select_working_zones' => 'Sélectionner les zones de travail',
+        'no_working_zones' => 'Aucune zone de travail sélectionnée',
+        'no_working_zones_tip' => 'Astuce: Définissez vos zones de travail dans les paramètres pour recevoir uniquement les commandes de vos zones préférées.'
     ]
 ];
 $t = $text[$lang];
