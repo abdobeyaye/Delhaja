@@ -2105,6 +2105,10 @@ require_once 'actions.php';
                         </div>
 
                         <?php if($role == 'customer' && !empty($row['driver_id']) && ($st == 'accepted' || $st == 'picked_up' || $st == 'delivered')): ?>
+                        <?php 
+                        // Get driver avatar early for use in JSON and display
+                        $driverAvatar = !empty($row['driver_avatar']) ? getAvatarUrl(['avatar_url' => $row['driver_avatar']]) : null;
+                        ?>
                         <!-- Enhanced Driver Info for Customer (clickable for popup details) -->
                         <div class="driver-info-box mb-3 p-3 bg-light rounded-3 border" style="cursor: pointer;" onclick="showDriverDetails(<?php echo htmlspecialchars(json_encode([
                             'name' => $row['driver_name'] ?? $t['driver'] ?? 'Driver',
@@ -2117,10 +2121,6 @@ require_once 'actions.php';
                             'status' => $st
                         ]), ENT_QUOTES, 'UTF-8'); ?>)" title="<?php echo $t['view_details'] ?? 'Click for details'; ?>">
                             <div class="d-flex align-items-center gap-3">
-                                <?php 
-                                // Get driver avatar
-                                $driverAvatar = !empty($row['driver_avatar']) ? getAvatarUrl(['avatar_url' => $row['driver_avatar']]) : null;
-                                ?>
                                 <div class="driver-avatar-lg position-relative">
                                     <?php if($driverAvatar): ?>
                                         <img src="<?php echo e($driverAvatar); ?>" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
@@ -2486,10 +2486,10 @@ const AppTranslations = {
 };
 
 const AppConfig = {
-    lang: '<?php echo $lang; ?>',
-    userRole: '<?php echo isset($_SESSION['user']) ? $role : ''; ?>',
+    lang: '<?php echo htmlspecialchars($lang, ENT_QUOTES, 'UTF-8'); ?>',
+    userRole: '<?php echo isset($_SESSION['user']) ? htmlspecialchars($role, ENT_QUOTES, 'UTF-8') : ''; ?>',
     isLoggedIn: <?php echo isset($_SESSION['user']) ? 'true' : 'false'; ?>,
-    countryCode: '<?php echo $country_code; ?>'
+    countryCode: '<?php echo htmlspecialchars($country_code, ENT_QUOTES, 'UTF-8'); ?>'
 };
 
 // Zone price matrix for client-side calculation
@@ -2622,10 +2622,16 @@ window.showDriverDetails = function(driver) {
         contactSection.style.display = 'none';
     }
     
-    // Set time info
+    // Set time info (sanitize the date value to prevent XSS)
     const timeInfoEl = document.getElementById('driverModalTimeInfo');
     if (driver.accepted_at) {
-        timeInfoEl.innerHTML = '<i class="fas fa-clock me-1"></i>' + (AppTranslations.driver_assigned || 'Assigned') + ': ' + driver.accepted_at;
+        // Create elements safely to avoid XSS
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-clock me-1';
+        const text = document.createTextNode((AppTranslations.driver_assigned || 'Assigned') + ': ' + driver.accepted_at);
+        timeInfoEl.innerHTML = '';
+        timeInfoEl.appendChild(icon);
+        timeInfoEl.appendChild(text);
     } else {
         timeInfoEl.innerHTML = '';
     }
