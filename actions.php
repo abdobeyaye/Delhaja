@@ -295,8 +295,38 @@ if (isset($_SESSION['user'])) {
             $amt = (int)$_POST['amount'];
             $did = (int)$_POST['driver_id'];
             if ($amt > 0 && $did > 0) {
-                $conn->prepare("UPDATE users1 SET points = points + ? WHERE id=?")->execute([$amt, $did]);
-                setFlash('success', $t['success_points_added'] ?? "Points added successfully.");
+                try {
+                    $conn->beginTransaction();
+                    
+                    // Get current balance with FOR UPDATE lock to prevent race conditions
+                    $stmt = $conn->prepare("SELECT points FROM users1 WHERE id=? AND role='driver' FOR UPDATE");
+                    $stmt->execute([$did]);
+                    $driver = $stmt->fetch();
+                    
+                    if ($driver) {
+                        $previous_balance = (int)$driver['points'];
+                        $new_balance = $previous_balance + $amt;
+                        
+                        // Update driver points
+                        $conn->prepare("UPDATE users1 SET points = ? WHERE id=?")->execute([$new_balance, $did]);
+                        
+                        // Log recharge history
+                        try {
+                            $conn->prepare("INSERT INTO recharge_history (driver_id, admin_id, amount, previous_balance, new_balance, recharge_type) VALUES (?, ?, ?, ?, ?, 'single')")
+                                 ->execute([$did, $uid, $amt, $previous_balance, $new_balance]);
+                        } catch (PDOException $e) {
+                            // Table might not exist yet, continue silently
+                        }
+                        
+                        $conn->commit();
+                        setFlash('success', $t['success_points_added'] ?? "Points added successfully.");
+                    } else {
+                        $conn->rollBack();
+                    }
+                } catch (Exception $e) {
+                    $conn->rollBack();
+                    setFlash('error', $t['err_general'] ?? 'An error occurred. Please try again.');
+                }
                 header("Location: index.php");
                 exit();
             }
@@ -313,13 +343,39 @@ if (isset($_SESSION['user'])) {
                 $ids = array_filter($ids, function($id) { return $id > 0; });
 
                 if (count($ids) > 0) {
-                    $placeholders = implode(',', array_fill(0, count($ids), '?'));
-                    $stmt = $conn->prepare("UPDATE users1 SET points = points + ? WHERE id IN ($placeholders) AND role='driver'");
-                    $params = array_merge([$amt], $ids);
-                    $stmt->execute($params);
-
-                    $count = $stmt->rowCount();
-                    setFlash('success', ($t['bulk_recharge_success'] ?? "Successfully recharged %d drivers with %d points.") . " " . sprintf("%d drivers recharged with %d points each.", $count, $amt));
+                    try {
+                        $conn->beginTransaction();
+                        
+                        // Get current balances with FOR UPDATE lock
+                        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                        $stmt = $conn->prepare("SELECT id, points FROM users1 WHERE id IN ($placeholders) AND role='driver' FOR UPDATE");
+                        $stmt->execute($ids);
+                        $drivers = $stmt->fetchAll();
+                        
+                        // Update all drivers
+                        $count = 0;
+                        foreach ($drivers as $driver) {
+                            $previous_balance = (int)$driver['points'];
+                            $new_balance = $previous_balance + $amt;
+                            
+                            $conn->prepare("UPDATE users1 SET points = ? WHERE id=?")->execute([$new_balance, $driver['id']]);
+                            
+                            // Log recharge history for each driver
+                            try {
+                                $conn->prepare("INSERT INTO recharge_history (driver_id, admin_id, amount, previous_balance, new_balance, recharge_type) VALUES (?, ?, ?, ?, ?, 'bulk')")
+                                     ->execute([$driver['id'], $uid, $amt, $previous_balance, $new_balance]);
+                            } catch (PDOException $e) {
+                                // Table might not exist yet, continue silently
+                            }
+                            $count++;
+                        }
+                        
+                        $conn->commit();
+                        setFlash('success', ($t['bulk_recharge_success'] ?? "Successfully recharged %d drivers with %d points.") . " " . sprintf("%d drivers recharged with %d points each.", $count, $amt));
+                    } catch (Exception $e) {
+                        $conn->rollBack();
+                        setFlash('error', $t['err_general'] ?? 'An error occurred. Please try again.');
+                    }
                     header("Location: index.php");
                     exit();
                 }

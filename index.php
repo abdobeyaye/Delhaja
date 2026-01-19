@@ -793,6 +793,9 @@ require_once 'actions.php';
                     <a class="nav-link" data-bs-toggle="tab" href="#points"><i class="fas fa-coins"></i> <span class="d-none d-sm-inline"><?php echo $t['add_points']; ?></span></a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#recharge-history"><i class="fas fa-history"></i> <span class="d-none d-sm-inline"><?php echo $t['recharge_history'] ?? 'Recharge History'; ?></span></a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#promo-codes"><i class="fas fa-tag"></i> <span class="d-none d-sm-inline"><?php echo $t['promo_codes'] ?? 'Promo Codes'; ?></span></a>
                 </li>
             </ul>
@@ -1032,8 +1035,8 @@ require_once 'actions.php';
                                                     <div class="loc-title"><i class="fas fa-map-marker-alt text-danger me-1"></i><?php echo e($order['address'] ?? ''); ?></div>
                                                     <?php if(!empty($order['client_phone'])): ?>
                                                     <div class="loc-sub">
-                                                        <a href="tel:+222<?php echo $order['client_phone']; ?>" class="text-primary">
-                                                            <i class="fas fa-phone me-1"></i>+222 <?php echo $order['client_phone']; ?>
+                                                        <a href="tel:+222<?php echo e($order['client_phone']); ?>" class="text-primary">
+                                                            <i class="fas fa-phone me-1"></i>+222 <?php echo e($order['client_phone']); ?>
                                                         </a>
                                                     </div>
                                                     <?php endif; ?>
@@ -1106,6 +1109,83 @@ require_once 'actions.php';
                                     <i class="fas fa-plus"></i> <?php echo $t['add_points'] ?? 'Add Points'; ?>
                                 </button>
                             </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RECHARGE HISTORY TAB -->
+                <div class="tab-pane fade" id="recharge-history">
+                    <div class="card content-card">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0"><i class="fas fa-history text-info"></i> <?php echo $t['recharge_history'] ?? 'Recharge History'; ?></h5>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th><?php echo $t['date'] ?? 'Date'; ?></th>
+                                            <th><?php echo $t['driver'] ?? 'Driver'; ?></th>
+                                            <th><?php echo $t['amount'] ?? 'Amount'; ?></th>
+                                            <th><?php echo $t['previous_balance'] ?? 'Previous'; ?></th>
+                                            <th><?php echo $t['new_balance'] ?? 'New Balance'; ?></th>
+                                            <th><?php echo $t['type'] ?? 'Type'; ?></th>
+                                            <th><?php echo $t['admin'] ?? 'Admin'; ?></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        try {
+                                            $recharge_history = $conn->query("
+                                                SELECT rh.*, 
+                                                       d.full_name as driver_name, d.serial_no as driver_serial, d.username as driver_username,
+                                                       a.full_name as admin_name, a.username as admin_username
+                                                FROM recharge_history rh
+                                                LEFT JOIN users1 d ON rh.driver_id = d.id
+                                                LEFT JOIN users1 a ON rh.admin_id = a.id
+                                                ORDER BY rh.created_at DESC
+                                                LIMIT 100
+                                            ");
+                                            if($recharge_history->rowCount() == 0): ?>
+                                            <tr>
+                                                <td colspan="7" class="text-center py-4 text-muted">
+                                                    <i class="fas fa-history fa-2x mb-2 d-block"></i>
+                                                    <?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?>
+                                                </td>
+                                            </tr>
+                                            <?php else: while($rh = $recharge_history->fetch()): ?>
+                                            <tr>
+                                                <td class="small"><?php echo fmtDate($rh['created_at']); ?></td>
+                                                <td>
+                                                    <strong><?php echo e($rh['driver_name'] ?? $rh['driver_username']); ?></strong>
+                                                    <?php if(!empty($rh['driver_serial'])): ?>
+                                                    <br><small class="text-primary"><?php echo e($rh['driver_serial']); ?></small>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td><span class="badge bg-success">+<?php echo $rh['amount']; ?> <?php echo $t['pts'] ?? 'pts'; ?></span></td>
+                                                <td><?php echo $rh['previous_balance']; ?> <?php echo $t['pts'] ?? 'pts'; ?></td>
+                                                <td><strong class="text-success"><?php echo $rh['new_balance']; ?> <?php echo $t['pts'] ?? 'pts'; ?></strong></td>
+                                                <td>
+                                                    <?php if($rh['recharge_type'] == 'bulk'): ?>
+                                                    <span class="badge bg-info"><?php echo $t['bulk'] ?? 'Bulk'; ?></span>
+                                                    <?php else: ?>
+                                                    <span class="badge bg-secondary"><?php echo $t['single'] ?? 'Single'; ?></span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="small"><?php echo e($rh['admin_name'] ?? $rh['admin_username']); ?></td>
+                                            </tr>
+                                            <?php endwhile; endif;
+                                        } catch (PDOException $e) { ?>
+                                            <tr>
+                                                <td colspan="7" class="text-center py-4 text-muted">
+                                                    <i class="fas fa-history fa-2x mb-2 d-block"></i>
+                                                    <?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?>
+                                                </td>
+                                            </tr>
+                                        <?php } ?>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1360,7 +1440,7 @@ require_once 'actions.php';
 
                                 <div class="mb-3">
                                     <label class="form-label fw-bold"><?php echo $t['code'] ?? 'Code'; ?> *</label>
-                                    <input type="text" name="promo_code" id="promoCode" class="form-control text-uppercase" required pattern="[A-Z0-9]+" placeholder="e.g. SUMMER2026" maxlength="50">
+                                    <input type="text" name="promo_code" id="promoCode" class="form-control text-uppercase" required pattern="[A-Z0-9]+" placeholder="e.g. SUMMER2026" maxlength="50" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
                                     <small class="text-muted"><?php echo $t['code_help'] ?? 'Uppercase letters and numbers only'; ?></small>
                                 </div>
 
@@ -1778,6 +1858,55 @@ require_once 'actions.php';
                     </div>
                 </div>
             </div>
+
+            <!-- DRIVER RECHARGE HISTORY -->
+            <div class="orders-container mb-3">
+                <div class="ultra-card">
+                    <div class="card-inner">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0"><i class="fas fa-history text-info me-2"></i><?php echo $t['recharge_history'] ?? 'Recharge History'; ?></h6>
+                        </div>
+                        <?php
+                        try {
+                            $driver_recharge_history = $conn->prepare("
+                                SELECT rh.*, a.full_name as admin_name, a.username as admin_username
+                                FROM recharge_history rh
+                                LEFT JOIN users1 a ON rh.admin_id = a.id
+                                WHERE rh.driver_id = ?
+                                ORDER BY rh.created_at DESC
+                                LIMIT 10
+                            ");
+                            $driver_recharge_history->execute([$uid]);
+                            
+                            if($driver_recharge_history->rowCount() == 0): ?>
+                            <div class="text-center py-3 text-muted">
+                                <i class="fas fa-history fa-2x mb-2 d-block"></i>
+                                <small><?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?></small>
+                            </div>
+                            <?php else: ?>
+                            <div class="list-group list-group-flush">
+                                <?php while($drh = $driver_recharge_history->fetch()): ?>
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom">
+                                    <div>
+                                        <span class="badge bg-success me-2">+<?php echo $drh['amount']; ?> <?php echo $t['pts'] ?? 'pts'; ?></span>
+                                        <small class="text-muted"><?php echo fmtDate($drh['created_at']); ?></small>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-success fw-bold"><?php echo $drh['new_balance']; ?> <?php echo $t['pts'] ?? 'pts'; ?></small>
+                                    </div>
+                                </div>
+                                <?php endwhile; ?>
+                            </div>
+                            <?php endif;
+                        } catch (PDOException $e) { ?>
+                            <div class="text-center py-3 text-muted">
+                                <i class="fas fa-history fa-2x mb-2 d-block"></i>
+                                <small><?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?></small>
+                            </div>
+                        <?php } ?>
+                    </div>
+                </div>
+            </div>
             <?php endif; ?>
 
             <?php if($role == 'customer'): ?>
@@ -1926,10 +2055,12 @@ require_once 'actions.php';
                 // Zone-based order filtering (no GPS)
                 if($role == 'driver') {
                     if ($showHistory) {
-                        // Show driver's delivered and cancelled order history
-                        $sql = "SELECT * FROM orders1
-                                WHERE driver_id = ? AND status IN ('delivered', 'cancelled')
-                                ORDER BY id DESC
+                        // Show driver's delivered and cancelled order history with customer info
+                        $sql = "SELECT o.*, c.full_name as client_full_name, c.avatar_url as client_avatar
+                                FROM orders1 o
+                                LEFT JOIN users1 c ON o.client_id = c.id
+                                WHERE o.driver_id = ? AND o.status IN ('delivered', 'cancelled')
+                                ORDER BY o.id DESC
                                 LIMIT 50";
                         $stmt = $conn->prepare($sql);
                         $stmt->execute([$uid]);
@@ -1946,30 +2077,36 @@ require_once 'actions.php';
                         });
                         
                         if ($isOnline && !empty($driverWorkingZones)) {
-                            // Online driver with working zones - show pending orders in their zones
+                            // Online driver with working zones - show pending orders in their zones with customer info
                             $zonePlaceholders = implode(',', array_fill(0, count($driverWorkingZones), '?'));
-                            $sql = "SELECT * FROM orders1
-                                    WHERE (driver_id = ? AND status IN ('accepted', 'picked_up'))
-                                    OR (status = 'pending' AND (pickup_zone IN ($zonePlaceholders) OR dropoff_zone IN ($zonePlaceholders)))
-                                    ORDER BY CASE WHEN driver_id = ? THEN 0 ELSE 1 END, id DESC
+                            $sql = "SELECT o.*, c.full_name as client_full_name, c.avatar_url as client_avatar
+                                    FROM orders1 o
+                                    LEFT JOIN users1 c ON o.client_id = c.id
+                                    WHERE (o.driver_id = ? AND o.status IN ('accepted', 'picked_up'))
+                                    OR (o.status = 'pending' AND (o.pickup_zone IN ($zonePlaceholders) OR o.dropoff_zone IN ($zonePlaceholders)))
+                                    ORDER BY CASE WHEN o.driver_id = ? THEN 0 ELSE 1 END, o.id DESC
                                     LIMIT 50";
                             $stmt = $conn->prepare($sql);
                             $params = array_merge([$uid], $driverWorkingZones, $driverWorkingZones, [$uid]);
                             $stmt->execute($params);
                         } elseif ($isOnline) {
-                            // Online driver without zones - show all pending orders
-                            $sql = "SELECT * FROM orders1
-                                    WHERE (driver_id = ? AND status IN ('accepted', 'picked_up'))
-                                    OR status = 'pending'
-                                    ORDER BY CASE WHEN driver_id = ? THEN 0 ELSE 1 END, id DESC
+                            // Online driver without zones - show all pending orders with customer info
+                            $sql = "SELECT o.*, c.full_name as client_full_name, c.avatar_url as client_avatar
+                                    FROM orders1 o
+                                    LEFT JOIN users1 c ON o.client_id = c.id
+                                    WHERE (o.driver_id = ? AND o.status IN ('accepted', 'picked_up'))
+                                    OR o.status = 'pending'
+                                    ORDER BY CASE WHEN o.driver_id = ? THEN 0 ELSE 1 END, o.id DESC
                                     LIMIT 50";
                             $stmt = $conn->prepare($sql);
                             $stmt->execute([$uid, $uid]);
                         } else {
-                            // Offline driver - only show their active orders (no pending)
-                            $sql = "SELECT * FROM orders1
-                                    WHERE driver_id = ? AND status IN ('accepted', 'picked_up')
-                                    ORDER BY id DESC
+                            // Offline driver - only show their active orders (no pending) with customer info
+                            $sql = "SELECT o.*, c.full_name as client_full_name, c.avatar_url as client_avatar
+                                    FROM orders1 o
+                                    LEFT JOIN users1 c ON o.client_id = c.id
+                                    WHERE o.driver_id = ? AND o.status IN ('accepted', 'picked_up')
+                                    ORDER BY o.id DESC
                                     LIMIT 50";
                             $stmt = $conn->prepare($sql);
                             $stmt->execute([$uid]);
@@ -2079,6 +2216,46 @@ require_once 'actions.php';
                         </div>
                         <?php endif; ?>
 
+                        <?php if($role == 'driver'): ?>
+                        <?php 
+                        // Get customer avatar for display
+                        $clientAvatar = !empty($row['client_avatar']) ? getAvatarUrl(['avatar_url' => $row['client_avatar']]) : null;
+                        $clientDisplayName = !empty($row['client_full_name']) ? $row['client_full_name'] : $row['customer_name'];
+                        ?>
+                        <!-- Customer Info for Driver -->
+                        <div class="customer-info-box mb-3 p-3 bg-light rounded-3 border">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="profile-avatar avatar-sm avatar-customer">
+                                    <?php if($clientAvatar): ?>
+                                        <img src="<?php echo e($clientAvatar); ?>" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                                    <?php else: ?>
+                                        <i class="fas fa-user"></i>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold text-dark"><?php echo e($clientDisplayName); ?></div>
+                                    <?php if($row['client_phone']): ?>
+                                    <div class="small text-muted">
+                                        <a href="tel:+222<?php echo e($row['client_phone']); ?>" class="text-primary">
+                                            <i class="fas fa-phone me-1"></i>+222 <?php echo e($row['client_phone']); ?>
+                                        </a>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if($row['client_phone']): ?>
+                                <div class="d-flex gap-2">
+                                    <a href="tel:+222<?php echo e($row['client_phone']); ?>" class="btn btn-success btn-sm rounded-circle" title="<?php echo $t['call'] ?? 'Call'; ?>">
+                                        <i class="fas fa-phone"></i>
+                                    </a>
+                                    <a href="https://wa.me/<?php echo e($country_code . $row['client_phone']); ?>" target="_blank" class="btn btn-sm rounded-circle" style="background-color: #25D366; color: white;" title="WhatsApp">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                         <!-- Route Visual -->
                         <div class="route-row">
                             <div class="visual-connector">
@@ -2089,14 +2266,16 @@ require_once 'actions.php';
                             <div class="text-info-route">
                                 <div>
                                     <div class="loc-title"><?php echo e($row['details']); ?></div>
+                                    <?php if($role != 'driver'): ?>
                                     <div class="loc-sub"><?php echo e($row['customer_name']); ?></div>
+                                    <?php endif; ?>
                                 </div>
                                 <div>
                                     <div class="loc-title"><i class="fas fa-map-marker-alt text-danger me-1"></i><?php echo e($row['address']); ?></div>
-                                    <?php if($row['client_phone']): ?>
+                                    <?php if($row['client_phone'] && $role != 'driver'): ?>
                                     <div class="loc-sub">
-                                        <a href="tel:+222<?php echo $row['client_phone']; ?>" class="text-primary">
-                                            <i class="fas fa-phone me-1"></i>+222 <?php echo $row['client_phone']; ?>
+                                        <a href="tel:+222<?php echo e($row['client_phone']); ?>" class="text-primary">
+                                            <i class="fas fa-phone me-1"></i>+222 <?php echo e($row['client_phone']); ?>
                                         </a>
                                     </div>
                                     <?php endif; ?>
