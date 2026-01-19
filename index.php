@@ -1035,8 +1035,8 @@ require_once 'actions.php';
                                                     <div class="loc-title"><i class="fas fa-map-marker-alt text-danger me-1"></i><?php echo e($order['address'] ?? ''); ?></div>
                                                     <?php if(!empty($order['client_phone'])): ?>
                                                     <div class="loc-sub">
-                                                        <a href="tel:+222<?php echo $order['client_phone']; ?>" class="text-primary">
-                                                            <i class="fas fa-phone me-1"></i>+222 <?php echo $order['client_phone']; ?>
+                                                        <a href="tel:+222<?php echo e($order['client_phone']); ?>" class="text-primary">
+                                                            <i class="fas fa-phone me-1"></i>+222 <?php echo e($order['client_phone']); ?>
                                                         </a>
                                                     </div>
                                                     <?php endif; ?>
@@ -2274,8 +2274,8 @@ require_once 'actions.php';
                                     <div class="loc-title"><i class="fas fa-map-marker-alt text-danger me-1"></i><?php echo e($row['address']); ?></div>
                                     <?php if($row['client_phone'] && $role != 'driver'): ?>
                                     <div class="loc-sub">
-                                        <a href="tel:+222<?php echo $row['client_phone']; ?>" class="text-primary">
-                                            <i class="fas fa-phone me-1"></i>+222 <?php echo $row['client_phone']; ?>
+                                        <a href="tel:+222<?php echo e($row['client_phone']); ?>" class="text-primary">
+                                            <i class="fas fa-phone me-1"></i>+222 <?php echo e($row['client_phone']); ?>
                                         </a>
                                     </div>
                                     <?php endif; ?>
