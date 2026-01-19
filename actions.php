@@ -152,14 +152,38 @@ if (isset($_SESSION['user'])) {
             $password = trim($_POST['password']);
             $role = $_POST['role'];
             $points = (int)$_POST['points'];
+            $full_name = trim($_POST['full_name'] ?? '');
+            $phone = preg_replace('/[^0-9]/', '', trim($_POST['phone'] ?? ''));
+            $email = trim($_POST['email'] ?? '');
+
+            // Validate phone number if provided (Mauritanian format)
+            if (!empty($phone) && (strlen($phone) != 8 || !preg_match('/^[234]/', $phone))) {
+                setFlash('error', $t['err_phone_invalid'] ?? 'Phone must be 8 digits starting with 2, 3, or 4');
+                header("Location: index.php");
+                exit();
+            }
+
+            // Check if phone is already used by another user
+            if (!empty($phone)) {
+                $check_phone = $conn->prepare("SELECT id FROM users1 WHERE phone = ? AND id != ?");
+                $check_phone->execute([$phone, $user_id]);
+                if ($check_phone->rowCount() > 0) {
+                    setFlash('error', $t['err_phone_exists'] ?? 'This phone number is already registered');
+                    header("Location: index.php");
+                    exit();
+                }
+            }
+
+            // Set phone_verified to 1 if phone is provided (auto-verify)
+            $phone_verified = !empty($phone) ? 1 : 0;
 
             if (!empty($password)) {
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $conn->prepare("UPDATE users1 SET password=?, role=?, points=? WHERE id=?")
-                     ->execute([$hashed_password, $role, $points, $user_id]);
+                $conn->prepare("UPDATE users1 SET password=?, role=?, points=?, full_name=?, phone=?, phone_verified=?, email=? WHERE id=?")
+                     ->execute([$hashed_password, $role, $points, $full_name, $phone ?: null, $phone_verified, $email ?: null, $user_id]);
             } else {
-                $conn->prepare("UPDATE users1 SET role=?, points=? WHERE id=?")
-                     ->execute([$role, $points, $user_id]);
+                $conn->prepare("UPDATE users1 SET role=?, points=?, full_name=?, phone=?, phone_verified=?, email=? WHERE id=?")
+                     ->execute([$role, $points, $full_name, $phone ?: null, $phone_verified, $email ?: null, $user_id]);
             }
             setFlash('success', $t['success_user_updated'] ?? 'User updated successfully');
             header("Location: index.php");
