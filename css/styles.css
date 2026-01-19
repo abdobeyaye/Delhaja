@@ -3387,3 +3387,13 @@ form.submitting button[type="submit"]::before {
 .pin-badge i {
     font-size: 0.75rem;
 }
+
+/* Tab Link Style */
+.tab-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.tab-link:hover {
+    text-decoration: none;
+}

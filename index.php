@@ -1680,12 +1680,12 @@ require_once 'actions.php';
             <?php endif; ?>
 
             <!-- TABS FOR FILTERING -->
-            <?php $showHistory = isset($_GET['history']) && $_GET['history'] == '1'; ?>
+            <?php $showHistory = isset($_GET['history']) && $_GET['history'] === '1'; ?>
             <div class="tabs-wrapper">
-                <a href="index.php" class="tab-new <?php echo !$showHistory ? 'active' : ''; ?>" style="text-decoration: none;">
+                <a href="index.php" class="tab-new tab-link <?php echo !$showHistory ? 'active' : ''; ?>">
                     <?php echo $role == 'driver' ? ($t['active_orders'] ?? 'Active') : ($t['recent_orders'] ?? 'الطلبات'); ?>
                 </a>
-                <a href="index.php?history=1" class="tab-new <?php echo $showHistory ? 'active' : ''; ?>" style="text-decoration: none;">
+                <a href="index.php?history=1" class="tab-new tab-link <?php echo $showHistory ? 'active' : ''; ?>">
                     <?php echo $t['order_history'] ?? 'History'; ?>
                 </a>
                 <?php if($role == 'driver' && !$showHistory): ?>
@@ -1778,7 +1778,7 @@ require_once 'actions.php';
                 if($res->rowCount() == 0): ?>
                 <div class="ultra-card">
                     <div class="card-inner text-center py-5">
-                        <i class="fas fa-<?php echo $showHistory ? 'history' : 'box-open'; ?> fa-3x text-muted mb-3"></i>
+                        <i class="fas fa-<?php echo $showHistory ? 'clock-rotate-left' : 'box-open'; ?> fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted"><?php echo $showHistory ? ($t['no_history'] ?? 'No order history') : $t['no_orders']; ?></h5>
                         <p class="text-muted small mb-0">
                             <?php echo $showHistory ? ($t['history_empty'] ?? 'Completed orders will appear here') : $t['check_back_later']; ?>
