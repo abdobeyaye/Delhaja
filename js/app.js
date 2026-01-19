@@ -337,9 +337,13 @@ function _showOrderTracking(order, translations) {
     const verifiedBadge = document.getElementById('tracking-verified-badge');
     verifiedBadge.style.display = order.driver_verified ? 'inline-block' : 'none';
 
-    // Set contact buttons
+    // Set contact buttons (phone call and WhatsApp)
     if (order.driver_phone) {
         document.getElementById('tracking-call-btn').href = 'tel:+222' + order.driver_phone;
+        const whatsappBtn = document.getElementById('tracking-whatsapp-btn');
+        if (whatsappBtn) {
+            whatsappBtn.href = 'https://wa.me/222' + order.driver_phone;
+        }
     }
 
     // Set order details

@@ -207,7 +207,9 @@ require_once 'actions.php';
                             </a>
                         </div>
                         <div class="card-body p-4">
-                            <form method="POST" enctype="multipart/form-data" onsubmit="this.querySelector('button[type=submit]').classList.add('loading')">
+                            <form method="POST" enctype="multipart/form-data" onsubmit="this.querySelector('button[type=submit]').classList.add('loading')" id="profileForm">
+                                <!-- Hidden input to ensure profile update is triggered even when form is submitted by file upload -->
+                                <input type="hidden" name="update_profile" value="1">
                                 <!-- Profile Header -->
                                 <div class="text-center mb-4">
                                     <label for="avatarInput" class="d-inline-block" style="cursor: pointer;">
@@ -1977,7 +1979,7 @@ require_once 'actions.php';
                 } elseif($role == 'customer') {
                     if ($showHistory) {
                         // Show customer's delivered and cancelled order history
-                        $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified, d.avatar_url as driver_avatar,
+                        $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified, d.avatar_url as driver_avatar, d.total_orders as driver_total_orders,
                                 (SELECT COUNT(*) FROM ratings r WHERE r.order_id = o.id AND r.rater_id = ?) as has_rated
                                 FROM orders1 o
                                 LEFT JOIN users1 d ON o.driver_id = d.id
@@ -1985,7 +1987,7 @@ require_once 'actions.php';
                                 ORDER BY o.id DESC LIMIT 50";
                     } else {
                         // Show customer's active orders
-                        $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified, d.avatar_url as driver_avatar,
+                        $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified, d.avatar_url as driver_avatar, d.total_orders as driver_total_orders,
                                 (SELECT COUNT(*) FROM ratings r WHERE r.order_id = o.id AND r.rater_id = ?) as has_rated
                                 FROM orders1 o
                                 LEFT JOIN users1 d ON o.driver_id = d.id
@@ -2103,25 +2105,37 @@ require_once 'actions.php';
                         </div>
 
                         <?php if($role == 'customer' && !empty($row['driver_id']) && ($st == 'accepted' || $st == 'picked_up' || $st == 'delivered')): ?>
-                        <!-- Enhanced Driver Info for Customer (active orders and history) -->
-                        <div class="driver-info-box mb-3 p-3 bg-light rounded-3 border">
+                        <!-- Enhanced Driver Info for Customer (clickable for popup details) -->
+                        <div class="driver-info-box mb-3 p-3 bg-light rounded-3 border" style="cursor: pointer;" onclick="showDriverDetails(<?php echo htmlspecialchars(json_encode([
+                            'name' => $row['driver_name'] ?? $t['driver'] ?? 'Driver',
+                            'phone' => $row['driver_phone'] ?? '',
+                            'rating' => $row['driver_rating'] ?? 5.0,
+                            'verified' => !empty($row['driver_verified']),
+                            'avatar' => $driverAvatar ?? '',
+                            'total_deliveries' => $row['driver_total_orders'] ?? 0,
+                            'accepted_at' => $row['accepted_at'] ?? '',
+                            'status' => $st
+                        ]), ENT_QUOTES, 'UTF-8'); ?>)" title="<?php echo $t['view_details'] ?? 'Click for details'; ?>">
                             <div class="d-flex align-items-center gap-3">
                                 <?php 
                                 // Get driver avatar
                                 $driverAvatar = !empty($row['driver_avatar']) ? getAvatarUrl(['avatar_url' => $row['driver_avatar']]) : null;
                                 ?>
-                                <div class="driver-avatar-lg">
+                                <div class="driver-avatar-lg position-relative">
                                     <?php if($driverAvatar): ?>
-                                        <img src="<?php echo e($driverAvatar); ?>" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="<?php echo e($driverAvatar); ?>" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
                                     <?php else: ?>
                                         <i class="fas fa-motorcycle"></i>
                                     <?php endif; ?>
+                                    <span class="position-absolute bottom-0 end-0 bg-white rounded-circle p-1" style="font-size: 0.6rem;">
+                                        <i class="fas fa-expand-alt text-primary"></i>
+                                    </span>
                                 </div>
                                 <div class="flex-grow-1">
                                     <div class="d-flex align-items-center gap-2 mb-1">
                                         <strong class="text-dark"><?php echo e($row['driver_name'] ?? ($t['driver'] ?? 'Driver')); ?></strong>
                                         <?php if(!empty($row['driver_verified'])): ?>
-                                        <span class="badge bg-success" title="<?php echo $t['driver_verified'] ?? 'Verified'; ?>"><i class="fas fa-check-circle"></i> <?php echo $t['verified'] ?? 'Verified'; ?></span>
+                                        <span class="badge bg-success" title="<?php echo $t['driver_verified'] ?? 'Verified'; ?>"><i class="fas fa-check-circle"></i></span>
                                         <?php endif; ?>
                                     </div>
                                     <?php if(!empty($row['driver_rating'])): ?>
@@ -2129,13 +2143,9 @@ require_once 'actions.php';
                                         <i class="fas fa-star"></i> <?php echo number_format($row['driver_rating'], 1); ?> / 5
                                     </div>
                                     <?php endif; ?>
-                                    <?php if(!empty($row['driver_phone'])): ?>
-                                    <div class="mt-2">
-                                        <a href="tel:+<?php echo $country_code; ?><?php echo e($row['driver_phone']); ?>" class="btn btn-sm btn-success">
-                                            <i class="fas fa-phone me-1"></i><?php echo $t['call_driver'] ?? 'Call'; ?>
-                                        </a>
+                                    <div class="small text-muted">
+                                        <i class="fas fa-info-circle me-1"></i><?php echo $t['view_details'] ?? 'Tap for details'; ?>
                                     </div>
-                                    <?php endif; ?>
                                 </div>
                                 <div class="text-end">
                                     <?php if($st == 'accepted'): ?>
@@ -2147,14 +2157,6 @@ require_once 'actions.php';
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <?php if(!empty($row['accepted_at'])): ?>
-                            <div class="small text-muted mt-2 pt-2 border-top">
-                                <i class="fas fa-clock me-1"></i><?php echo $t['driver_assigned'] ?? 'Driver assigned'; ?>: <?php echo fmtDate($row['accepted_at']); ?>
-                                <?php if($st == 'delivered' && !empty($row['delivered_at'])): ?>
-                                <span class="ms-3"><i class="fas fa-check-double me-1"></i><?php echo $t['st_delivered'] ?? 'Delivered'; ?>: <?php echo fmtDate($row['delivered_at']); ?></span>
-                                <?php endif; ?>
-                            </div>
-                            <?php endif; ?>
                         </div>
                         <?php endif; ?>
 
@@ -2342,9 +2344,12 @@ require_once 'actions.php';
                                     </div>
                                 </div>
                             </div>
-                            <div class="mt-3">
-                                <a href="#" id="tracking-call-btn" class="btn btn-success btn-sm w-100 rounded-pill">
+                            <div class="mt-3 d-flex gap-2">
+                                <a href="#" id="tracking-call-btn" class="btn btn-success btn-sm flex-fill rounded-pill">
                                     <i class="fas fa-phone me-1"></i> <?php echo $t['call_driver'] ?? 'Call'; ?>
+                                </a>
+                                <a href="#" id="tracking-whatsapp-btn" class="btn btn-sm flex-fill rounded-pill" style="background-color: #25D366; color: white;">
+                                    <i class="fab fa-whatsapp me-1"></i> WhatsApp
                                 </a>
                             </div>
                         </div>
@@ -2360,6 +2365,68 @@ require_once 'actions.php';
                         <div class="mt-3 text-center">
                             <small class="text-muted" id="tracking-time-info"></small>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Driver Details Popup Modal -->
+        <div class="modal fade" id="driverDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 20px; overflow: hidden;">
+                    <div class="modal-body p-0">
+                        <!-- Header with gradient background -->
+                        <div class="text-center py-4" style="background: linear-gradient(135deg, #10b981, #06b6d4);">
+                            <div class="position-relative d-inline-block">
+                                <div id="driverModalAvatar" class="driver-avatar-lg mx-auto mb-3" style="width: 90px; height: 90px; border: 4px solid white; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
+                                    <i class="fas fa-motorcycle"></i>
+                                </div>
+                                <span id="driverModalVerifiedBadge" class="position-absolute bottom-0 end-0 bg-success text-white rounded-circle p-1" style="display: none; width: 28px; height: 28px; font-size: 0.8rem;">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                            </div>
+                            <h5 class="fw-bold text-white mb-1" id="driverModalName">-</h5>
+                            <div class="text-white" id="driverModalRating">
+                                <i class="fas fa-star text-warning"></i> <span>5.0</span> / 5
+                            </div>
+                        </div>
+                        
+                        <!-- Info Cards -->
+                        <div class="p-4">
+                            <div class="row g-3 mb-4">
+                                <div class="col-6">
+                                    <div class="bg-light rounded-3 p-3 text-center">
+                                        <div class="text-primary fw-bold fs-5" id="driverModalDeliveries">0</div>
+                                        <div class="small text-muted"><?php echo $t['completed_deliveries'] ?? 'Deliveries'; ?></div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="bg-light rounded-3 p-3 text-center">
+                                        <div id="driverModalStatus" class="fw-bold fs-6">-</div>
+                                        <div class="small text-muted"><?php echo $t['status'] ?? 'Status'; ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Contact Buttons -->
+                            <div class="d-grid gap-2" id="driverModalContactSection">
+                                <a href="#" id="driverModalCallBtn" class="btn btn-success btn-lg rounded-pill">
+                                    <i class="fas fa-phone me-2"></i><?php echo $t['call_driver'] ?? 'Call Driver'; ?>
+                                </a>
+                                <a href="#" id="driverModalWhatsappBtn" class="btn btn-lg rounded-pill" style="background-color: #25D366; color: white;">
+                                    <i class="fab fa-whatsapp me-2"></i><?php echo $t['message_driver'] ?? 'WhatsApp'; ?>
+                                </a>
+                            </div>
+                            
+                            <!-- Timestamp Info -->
+                            <div class="text-center mt-3 small text-muted" id="driverModalTimeInfo">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light w-100 rounded-pill" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i><?php echo $t['close'] ?? 'Close'; ?>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2434,23 +2501,131 @@ function calculateDeliveryPrice() {
     const priceContainer = document.getElementById('deliveryPriceContainer');
     const priceDisplay = document.getElementById('deliveryPriceDisplay');
 
-    if (!pickupZone || !dropoffZone || !priceContainer || !priceDisplay) return;
+    if (!priceContainer || !priceDisplay) return;
 
-    // Find price in matrix
-    let price = 150; // default
-    for (const route of zonePrices) {
-        if (route.from === pickupZone && route.to === dropoffZone) {
-            price = route.price;
-            break;
+    // Show price immediately when dropoff zone is selected (regardless of pickup)
+    if (dropoffZone) {
+        let price = 150; // default
+        
+        if (pickupZone) {
+            // Both zones selected - find exact price
+            for (const route of zonePrices) {
+                if (route.from === pickupZone && route.to === dropoffZone) {
+                    price = route.price;
+                    break;
+                }
+            }
+            priceDisplay.textContent = price + ' ' + AppTranslations.mru;
+        } else {
+            // Only dropoff selected - show price range for this destination
+            let minPrice = Infinity;
+            let maxPrice = 0;
+            for (const route of zonePrices) {
+                if (route.to === dropoffZone) {
+                    minPrice = Math.min(minPrice, route.price);
+                    maxPrice = Math.max(maxPrice, route.price);
+                }
+            }
+            if (minPrice === Infinity) {
+                minPrice = 100;
+                maxPrice = 200;
+            }
+            if (minPrice === maxPrice) {
+                priceDisplay.textContent = minPrice + ' ' + AppTranslations.mru;
+            } else {
+                priceDisplay.textContent = minPrice + ' - ' + maxPrice + ' ' + AppTranslations.mru;
+            }
         }
+        priceContainer.style.display = 'block';
+    } else if (pickupZone) {
+        // Only pickup zone selected - show price range from this origin
+        let minPrice = Infinity;
+        let maxPrice = 0;
+        for (const route of zonePrices) {
+            if (route.from === pickupZone) {
+                minPrice = Math.min(minPrice, route.price);
+                maxPrice = Math.max(maxPrice, route.price);
+            }
+        }
+        if (minPrice === Infinity) {
+            minPrice = 100;
+            maxPrice = 200;
+        }
+        if (minPrice === maxPrice) {
+            priceDisplay.textContent = minPrice + ' ' + AppTranslations.mru;
+        } else {
+            priceDisplay.textContent = minPrice + ' - ' + maxPrice + ' ' + AppTranslations.mru;
+        }
+        priceContainer.style.display = 'block';
+    } else {
+        // No zone selected - hide price
+        priceContainer.style.display = 'none';
     }
-
-    priceDisplay.textContent = price + ' ' + AppTranslations.mru;
-    priceContainer.style.display = 'block';
 }
 
 window.showOrderTracking = function(order) {
     _showOrderTracking(order, AppTranslations);
+};
+
+// Show driver details popup modal
+window.showDriverDetails = function(driver) {
+    // Set avatar
+    const avatarEl = document.getElementById('driverModalAvatar');
+    if (driver.avatar) {
+        avatarEl.innerHTML = '<img src="' + driver.avatar + '" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">';
+    } else {
+        avatarEl.innerHTML = '<i class="fas fa-motorcycle"></i>';
+    }
+    
+    // Set name
+    document.getElementById('driverModalName').textContent = driver.name || '-';
+    
+    // Set rating
+    const rating = parseFloat(driver.rating) || 5.0;
+    document.getElementById('driverModalRating').innerHTML = '<i class="fas fa-star text-warning"></i> <span>' + rating.toFixed(1) + '</span> / 5';
+    
+    // Set verified badge
+    const verifiedBadge = document.getElementById('driverModalVerifiedBadge');
+    verifiedBadge.style.display = driver.verified ? 'flex' : 'none';
+    verifiedBadge.style.alignItems = 'center';
+    verifiedBadge.style.justifyContent = 'center';
+    
+    // Set deliveries count
+    document.getElementById('driverModalDeliveries').textContent = driver.total_deliveries || '0';
+    
+    // Set status badge
+    const statusEl = document.getElementById('driverModalStatus');
+    let statusBadge = '';
+    if (driver.status === 'accepted') {
+        statusBadge = '<span class="badge bg-info">' + (AppTranslations.st_accepted || 'Accepted') + '</span>';
+    } else if (driver.status === 'picked_up') {
+        statusBadge = '<span class="badge bg-primary">' + (AppTranslations.st_picked_up || 'Picked Up') + '</span>';
+    } else if (driver.status === 'delivered') {
+        statusBadge = '<span class="badge bg-success">' + (AppTranslations.st_delivered || 'Delivered') + '</span>';
+    }
+    statusEl.innerHTML = statusBadge;
+    
+    // Set contact buttons
+    const contactSection = document.getElementById('driverModalContactSection');
+    if (driver.phone) {
+        contactSection.style.display = 'grid';
+        document.getElementById('driverModalCallBtn').href = 'tel:+<?php echo $country_code; ?>' + driver.phone;
+        document.getElementById('driverModalWhatsappBtn').href = 'https://wa.me/<?php echo $country_code; ?>' + driver.phone;
+    } else {
+        contactSection.style.display = 'none';
+    }
+    
+    // Set time info
+    const timeInfoEl = document.getElementById('driverModalTimeInfo');
+    if (driver.accepted_at) {
+        timeInfoEl.innerHTML = '<i class="fas fa-clock me-1"></i>' + (AppTranslations.driver_assigned || 'Assigned') + ': ' + driver.accepted_at;
+    } else {
+        timeInfoEl.innerHTML = '';
+    }
+    
+    // Show modal
+    var modal = new bootstrap.Modal(document.getElementById('driverDetailsModal'));
+    modal.show();
 };
 
 <?php if(isset($_SESSION['user']) && !isset($_GET['settings'])): ?>
