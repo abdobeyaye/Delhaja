@@ -26,6 +26,7 @@ $db_config = [
 // ==========================================
 // APPLICATION SETTINGS
 // ==========================================
+$country_code = "222";                    // Mauritania country code
 $whatsapp_number = "22241312931";
 $help_email = "help@barqmr.com";
 $help_phone = "+222 41 31 29 31";

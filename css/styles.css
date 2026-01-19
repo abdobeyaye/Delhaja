@@ -3397,3 +3397,75 @@ form.submitting button[type="submit"]::before {
 .tab-link:hover {
     text-decoration: none;
 }
+
+/* ==========================================
+   Enhanced Driver Info Box (for Customer Orders)
+   ========================================== */
+.driver-info-box {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    transition: var(--transition);
+}
+
+.driver-info-box:hover {
+    box-shadow: var(--shadow);
+}
+
+.driver-info-box .driver-avatar-lg {
+    flex-shrink: 0;
+}
+
+/* Admin Statistics Enhancements */
+.bg-primary-soft {
+    background-color: rgba(88, 75, 246, 0.1) !important;
+}
+
+.bg-success-soft {
+    background-color: rgba(0, 200, 81, 0.1) !important;
+}
+
+.bg-warning-soft {
+    background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+.bg-info-soft {
+    background-color: rgba(8, 145, 178, 0.1) !important;
+}
+
+.bg-danger-soft {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+.stat-icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.stat-card-enhanced .stat-number {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+/* List group flush without padding */
+.list-group-flush .list-group-item.border-0 {
+    border: none !important;
+}
+
+/* Top Drivers/Zones list styling */
+.list-group-flush .list-group-item {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+}
+
+.list-group-flush .list-group-item:first-child {
+    padding-top: 0;
+}
+
+.list-group-flush .list-group-item:last-child {
+    padding-bottom: 0;
+}
