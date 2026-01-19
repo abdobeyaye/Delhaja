@@ -157,7 +157,7 @@ function getAvatarColor($role) {
  * Handle avatar upload
  */
 function uploadAvatar($file, $userId) {
-    global $uploads_dir;
+    global $uploads_dir, $conn;
 
     $allowed_types = ['image/jpeg', 'image/png', 'image/webp'];
     $max_size = 5 * 1024 * 1024; // 5MB
@@ -183,8 +183,26 @@ function uploadAvatar($file, $userId) {
         mkdir($user_dir, 0755, true);
     }
 
+    // Delete old avatar if exists
+    try {
+        $stmt = $conn->prepare("SELECT avatar_url FROM users1 WHERE id = ?");
+        $stmt->execute([$userId]);
+        $oldAvatar = $stmt->fetchColumn();
+        if ($oldAvatar) {
+            $oldPath = __DIR__ . '/' . $oldAvatar;
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+        }
+    } catch (Exception $e) {
+        // Continue even if old avatar deletion fails
+    }
+
     // Generate filename
-    $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+        $ext = 'jpg'; // Default extension based on mime type
+    }
     $filename = 'avatar_' . time() . '.' . $ext;
     $filepath = $user_dir . '/' . $filename;
 
@@ -752,7 +770,48 @@ $text = [
         'driver_phone' => 'هاتف السائق',
         'contact_driver' => 'التواصل مع السائق',
         'driver_rating' => 'تقييم السائق',
-        'order_driver' => 'السائق المكلف'
+        'order_driver' => 'السائق المكلف',
+        
+        // Missing Admin UI Translations
+        'select_all' => 'تحديد الكل',
+        'bulk_recharge' => 'شحن جماعي',
+        'promo_codes' => 'أكواد الخصم',
+        'create_promo' => 'إنشاء كود خصم',
+        'edit_promo' => 'تعديل كود الخصم',
+        'no_promo_codes' => 'لا توجد أكواد خصم. أنشئ واحداً للبدء!',
+        'confirm_delete' => 'هل أنت متأكد من الحذف؟',
+        'delete_permanently' => 'حذف نهائي',
+        'confirm_action' => 'تأكيد',
+        'success_rate' => 'نسبة النجاح',
+        'today_orders' => 'طلبات اليوم',
+        'customers' => 'العملاء',
+        'confirm_recharge' => 'تأكيد الشحن',
+        'verify' => 'توثيق',
+        'receiving_orders' => 'تستقبل الطلبات',
+        'tap_to_go_online' => 'اضغط للاتصال',
+        'your_balance' => 'رصيدك',
+        'whatsapp_recharge' => 'شحن عبر واتساب',
+        'rating' => 'التقييم',
+        'hello' => 'مرحباً',
+        'start_your_day' => 'ابدأ يومك بنشاط!',
+        'what_need_today' => 'ماذا تحتاج اليوم؟',
+        'phone_auto_verify' => 'يتم التحقق من الهاتف تلقائياً عند إضافته',
+        'order_details_placeholder' => 'صف ما تريد توصيله...',
+        'enter_promo_code' => 'أدخل كود الخصم',
+        'apply' => 'تطبيق',
+        'total_revenue' => 'إجمالي الإيرادات',
+        'today_revenue' => 'إيرادات اليوم',
+        'delivered' => 'تم التسليم',
+        'driver_finish' => 'إنهاء',
+        'order_released' => 'تم إعادة الطلب. تم استرداد النقاط.',
+        'confirm_release' => 'إعادة الطلب؟ سيتم استرداد النقاط.',
+        
+        // Driver Tiers
+        'your_tier' => 'مستواك',
+        'new_driver' => 'سائق جديد',
+        'regular_driver' => 'سائق عادي',
+        'pro_driver' => 'سائق محترف',
+        'vip_driver' => 'سائق VIP'
     ],
 
     'fr' => [
@@ -1161,7 +1220,48 @@ $text = [
         'driver_phone' => 'Téléphone du livreur',
         'contact_driver' => 'Contacter le livreur',
         'driver_rating' => 'Note du livreur',
-        'order_driver' => 'Livreur assigné'
+        'order_driver' => 'Livreur assigné',
+        
+        // Missing Admin UI Translations
+        'select_all' => 'Tout sélectionner',
+        'bulk_recharge' => 'Recharge groupée',
+        'promo_codes' => 'Codes promo',
+        'create_promo' => 'Créer un code promo',
+        'edit_promo' => 'Modifier le code promo',
+        'no_promo_codes' => 'Aucun code promo. Créez-en un pour commencer!',
+        'confirm_delete' => 'Êtes-vous sûr de vouloir supprimer?',
+        'delete_permanently' => 'Supprimer définitivement',
+        'confirm_action' => 'Confirmer',
+        'success_rate' => 'Taux de réussite',
+        'today_orders' => 'Commandes aujourd\'hui',
+        'customers' => 'Clients',
+        'confirm_recharge' => 'Confirmer la recharge',
+        'verify' => 'Vérifier',
+        'receiving_orders' => 'Réception de commandes',
+        'tap_to_go_online' => 'Appuyez pour passer en ligne',
+        'your_balance' => 'Votre solde',
+        'whatsapp_recharge' => 'Recharger via WhatsApp',
+        'rating' => 'Note',
+        'hello' => 'Bonjour',
+        'start_your_day' => 'Commencez votre journée avec énergie!',
+        'what_need_today' => 'De quoi avez-vous besoin aujourd\'hui?',
+        'phone_auto_verify' => 'Le téléphone est automatiquement vérifié lors de l\'ajout',
+        'order_details_placeholder' => 'Décrivez ce que vous voulez livrer...',
+        'enter_promo_code' => 'Entrez le code promo',
+        'apply' => 'Appliquer',
+        'total_revenue' => 'Revenus totaux',
+        'today_revenue' => 'Revenus aujourd\'hui',
+        'delivered' => 'Livré',
+        'driver_finish' => 'Terminer',
+        'order_released' => 'Commande libérée. Points remboursés.',
+        'confirm_release' => 'Libérer cette commande? Les points seront remboursés.',
+        
+        // Driver Tiers
+        'your_tier' => 'Votre niveau',
+        'new_driver' => 'Nouveau livreur',
+        'regular_driver' => 'Livreur régulier',
+        'pro_driver' => 'Livreur Pro',
+        'vip_driver' => 'Livreur VIP'
     ]
 ];
 $t = $text[$lang];
