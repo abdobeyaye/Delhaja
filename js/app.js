@@ -671,6 +671,11 @@ function acceptOrderFromBubble(orderId, btn) {
 // ==========================================
 // REAL-TIME NOTIFICATIONS POLLING
 // ==========================================
+
+// Configuration constants for form interaction tracking
+const FORM_BLUR_RESET_DELAY_MS = 500;       // Delay before resetting flag when form loses focus
+const ZONE_SELECTION_RESET_DELAY_MS = 10000; // Delay before resetting flag after zone selection
+
 // Track if user is actively filling out the new order form
 let isFillingOrderForm = false;
 
@@ -722,7 +727,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isElementInDOM(newOrderForm) && !isFocusInsideForm(newOrderForm)) {
                 isFillingOrderForm = false;
             }
-        }, 500);
+        }, FORM_BLUR_RESET_DELAY_MS);
     });
     
     // Also track when zones are selected - set flag and schedule reset
@@ -734,14 +739,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear any existing timeout first to prevent memory leaks
         clearFormInteractionTimeout();
         
-        // Schedule flag reset after a reasonable time (10 seconds)
+        // Schedule flag reset after a reasonable time
         // This gives the user time to continue filling the form
         formInteractionTimeout = setTimeout(function() {
             // Only reset if form still exists and focus is outside the form
             if (isElementInDOM(newOrderForm) && !isFocusInsideForm(newOrderForm)) {
                 isFillingOrderForm = false;
             }
-        }, 10000);
+        }, ZONE_SELECTION_RESET_DELAY_MS);
     }
     
     if (pickupZone) {
