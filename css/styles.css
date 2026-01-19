@@ -1576,7 +1576,8 @@
         }
 
         /* Floating Action Button */
-        .fab {
+        .floating-action-btn,
+        button.fab {
             position: fixed;
             bottom: 24px;
             right: 24px;
@@ -1595,11 +1596,13 @@
             transition: var(--transition-bounce);
             z-index: 1000;
         }
-        .fab:hover {
+        .floating-action-btn:hover,
+        button.fab:hover {
             transform: scale(1.15) rotate(90deg);
             box-shadow: 0 12px 35px rgba(99, 102, 241, 0.5);
         }
-        [dir="rtl"] .fab { right: auto; left: 24px; }
+        [dir="rtl"] .floating-action-btn,
+        [dir="rtl"] button.fab { right: auto; left: 24px; }
 
         /* ==========================================
            FLOATING ORDER NOTIFICATION BUBBLE

@@ -375,6 +375,71 @@ function isPhoneVerified($user) {
     return !empty($user['phone']) && !empty($user['phone_verified']);
 }
 
+/**
+ * Track a page visit (unique by IP per day)
+ */
+function trackVisitor($conn, $userId = null) {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ip = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
+    }
+    $ip = trim($ip);
+    
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $pageUrl = $_SERVER['REQUEST_URI'] ?? '';
+    $referrer = $_SERVER['HTTP_REFERER'] ?? null;
+    $visitDate = date('Y-m-d');
+    
+    try {
+        // Insert or update (unique per IP per day)
+        $stmt = $conn->prepare("INSERT INTO site_visitors (ip_address, user_agent, page_url, referrer, user_id, visit_date) 
+                                VALUES (?, ?, ?, ?, ?, ?)
+                                ON DUPLICATE KEY UPDATE 
+                                page_url = VALUES(page_url), 
+                                user_id = COALESCE(VALUES(user_id), user_id)");
+        $stmt->execute([$ip, $userAgent, $pageUrl, $referrer, $userId, $visitDate]);
+    } catch (Exception $e) {
+        // Silently fail - visitor tracking should not break the site
+    }
+}
+
+/**
+ * Get visitor statistics
+ */
+function getVisitorStats($conn) {
+    $stats = [
+        'total' => 0,
+        'today' => 0,
+        'this_week' => 0,
+        'this_month' => 0
+    ];
+    
+    try {
+        // Total unique visitors (all time)
+        $stmt = $conn->query("SELECT COUNT(DISTINCT ip_address) FROM site_visitors");
+        $stats['total'] = $stmt->fetchColumn() ?: 0;
+        
+        // Today's visitors
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM site_visitors WHERE visit_date = CURDATE()");
+        $stmt->execute();
+        $stats['today'] = $stmt->fetchColumn() ?: 0;
+        
+        // This week's visitors
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM site_visitors WHERE visit_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
+        $stmt->execute();
+        $stats['this_week'] = $stmt->fetchColumn() ?: 0;
+        
+        // This month's visitors
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM site_visitors WHERE MONTH(visit_date) = MONTH(CURDATE()) AND YEAR(visit_date) = YEAR(CURDATE())");
+        $stmt->execute();
+        $stats['this_month'] = $stmt->fetchColumn() ?: 0;
+    } catch (Exception $e) {
+        // Return empty stats on error
+    }
+    
+    return $stats;
+}
+
 // ==========================================
 // COMPLETE TRANSLATIONS
 // ==========================================
@@ -836,7 +901,14 @@ $text = [
         'new_balance' => 'الرصيد الجديد',
         'bulk' => 'جماعي',
         'single' => 'فردي',
-        'call' => 'اتصال'
+        'call' => 'اتصال',
+        
+        // Visitor Statistics
+        'site_visitors' => 'زوار الموقع',
+        'visitors_today' => 'زوار اليوم',
+        'visitors_this_week' => 'زوار الأسبوع',
+        'visitors_this_month' => 'زوار الشهر',
+        'total_visitors' => 'إجمالي الزوار'
     ],
 
     'fr' => [
@@ -1296,7 +1368,14 @@ $text = [
         'new_balance' => 'Nouveau solde',
         'bulk' => 'Groupé',
         'single' => 'Individuel',
-        'call' => 'Appeler'
+        'call' => 'Appeler',
+        
+        // Visitor Statistics
+        'site_visitors' => 'Visiteurs du site',
+        'visitors_today' => 'Visiteurs aujourd\'hui',
+        'visitors_this_week' => 'Visiteurs cette semaine',
+        'visitors_this_month' => 'Visiteurs ce mois',
+        'total_visitors' => 'Total des visiteurs'
     ]
 ];
 $t = $text[$lang];

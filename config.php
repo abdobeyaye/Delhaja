@@ -344,6 +344,21 @@ try {
         INDEX idx_created (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+    // 9. Create Visitor Tracking Table
+    $conn->exec("CREATE TABLE IF NOT EXISTS site_visitors (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ip_address VARCHAR(45) NOT NULL,
+        user_agent TEXT,
+        page_url VARCHAR(500),
+        referrer VARCHAR(500) DEFAULT NULL,
+        user_id INT DEFAULT NULL,
+        visit_date DATE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_date (visit_date),
+        INDEX idx_ip_date (ip_address, visit_date),
+        UNIQUE KEY unique_daily_visit (ip_address, visit_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
     // ==========================================
     // SCHEMA MIGRATIONS (Add missing columns)
     // ==========================================

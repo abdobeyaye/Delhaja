@@ -15,6 +15,9 @@ require_once 'auth.php';
 
 // Include action handlers
 require_once 'actions.php';
+
+// Track visitor (unique per IP per day)
+trackVisitor($conn, isset($_SESSION['user']) ? $_SESSION['user']['id'] : null);
 ?>
 
 <!DOCTYPE html>
@@ -54,7 +57,7 @@ require_once 'actions.php';
 
             <!-- Logo Area -->
             <div class="login-logo-area">
-                <img src="logo.png" alt="<?php echo $t['app_name']; ?>" class="login-logo-img" style="height: 80px; width: auto; margin-bottom: 15px;">
+                <img src="logo.png" alt="<?php echo $t['app_name']; ?>" class="login-logo-img" style="height: 120px; width: auto; margin-bottom: 15px;">
                 <h1 class="login-app-title"><?php echo $t['app_name']; ?></h1>
                 <p class="login-app-subtitle"><?php echo $t['app_desc']; ?></p>
             </div>
@@ -159,7 +162,7 @@ require_once 'actions.php';
     <nav class="navbar app-navbar sticky-top mb-4">
         <div class="container">
             <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="index.php">
-                <img src="logo.png" alt="<?php echo $t['app_name']; ?>" style="height: 40px; width: auto;" onerror="this.style.display='none'">
+                <img src="logo.png" alt="<?php echo $t['app_name']; ?>" style="height: 60px; width: auto;" onerror="this.style.display='none'">
                 <span class="text-primary d-none d-sm-inline"><?php echo $t['app_name']; ?></span>
             </a>
             <div class="d-flex align-items-center gap-2 gap-md-3">
@@ -498,6 +501,9 @@ require_once 'actions.php';
             // Average delivery time (in minutes) - for delivered orders
             $avgDeliveryTime = $conn->query("SELECT AVG(TIMESTAMPDIFF(MINUTE, accepted_at, delivered_at)) FROM orders1 WHERE status='delivered' AND accepted_at IS NOT NULL AND delivered_at IS NOT NULL")->fetchColumn();
             $avgDeliveryTime = $avgDeliveryTime ? round($avgDeliveryTime) : 0;
+            
+            // Visitor Statistics
+            $visitorStats = getVisitorStats($conn);
             ?>
 
             <!-- Enhanced Statistics Grid -->
@@ -707,6 +713,55 @@ require_once 'actions.php';
                                 </div>
                                 <div class="stat-icon-circle bg-warning-soft">
                                     <i class="fas fa-money-bill-wave text-warning"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visitor Statistics Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <div class="ultra-card">
+                        <div class="card-inner">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-eye text-info me-2"></i><?php echo $t['site_visitors'] ?? 'Site Visitors'; ?></h6>
+                            <div class="row g-3">
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.2));">
+                                        <div class="stat-icon-circle bg-info-soft mx-auto mb-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-clock text-info" style="font-size: 1rem;"></i>
+                                        </div>
+                                        <h4 class="mb-0 text-info"><?php echo number_format($visitorStats['today']); ?></h4>
+                                        <small class="text-muted"><?php echo $t['visitors_today'] ?? 'Today'; ?></small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, rgba(88, 75, 246, 0.1), rgba(88, 75, 246, 0.2));">
+                                        <div class="stat-icon-circle bg-primary-soft mx-auto mb-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-calendar-week text-primary" style="font-size: 1rem;"></i>
+                                        </div>
+                                        <h4 class="mb-0 text-primary"><?php echo number_format($visitorStats['this_week']); ?></h4>
+                                        <small class="text-muted"><?php echo $t['visitors_this_week'] ?? 'This Week'; ?></small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, rgba(0, 200, 81, 0.1), rgba(0, 200, 81, 0.2));">
+                                        <div class="stat-icon-circle bg-success-soft mx-auto mb-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-calendar-alt text-success" style="font-size: 1rem;"></i>
+                                        </div>
+                                        <h4 class="mb-0 text-success"><?php echo number_format($visitorStats['this_month']); ?></h4>
+                                        <small class="text-muted"><?php echo $t['visitors_this_month'] ?? 'This Month'; ?></small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.2));">
+                                        <div class="stat-icon-circle bg-warning-soft mx-auto mb-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-globe text-warning" style="font-size: 1rem;"></i>
+                                        </div>
+                                        <h4 class="mb-0 text-warning"><?php echo number_format($visitorStats['total']); ?></h4>
+                                        <small class="text-muted"><?php echo $t['total_visitors'] ?? 'Total Visitors'; ?></small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1846,7 +1901,7 @@ require_once 'actions.php';
                     <?php endif; ?>
                     <div class="d-flex gap-2">
                         <a href="https://wa.me/<?php echo $whatsapp_number; ?>?text=<?php echo urlencode('مرحبا، أرغب في شحن رصيد' . "\n" . 'المستخدم: ' . ($u['serial_no'] ?? $u['username']) . "\n" . 'الرقم: ' . ($u['phone'] ?? '')); ?>" target="_blank" class="recharge-btn whatsapp flex-grow-1 justify-content-center">
-                            <i class="fab fa-whatsapp"></i>
+                            <i class="fa-brands fa-whatsapp"></i>
                             <?php echo $t['whatsapp_recharge'] ?? 'WhatsApp to Recharge'; ?>
                         </a>
                     </div>
@@ -1855,55 +1910,6 @@ require_once 'actions.php';
                             <i class="fas fa-info-circle me-1"></i>
                             <?php echo $t['recharge_note'] ?? 'Contact support to add credits to your account'; ?>
                         </small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- DRIVER RECHARGE HISTORY -->
-            <div class="orders-container mb-3">
-                <div class="ultra-card">
-                    <div class="card-inner">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold mb-0"><i class="fas fa-history text-info me-2"></i><?php echo $t['recharge_history'] ?? 'Recharge History'; ?></h6>
-                        </div>
-                        <?php
-                        try {
-                            $driver_recharge_history = $conn->prepare("
-                                SELECT rh.*, a.full_name as admin_name, a.username as admin_username
-                                FROM recharge_history rh
-                                LEFT JOIN users1 a ON rh.admin_id = a.id
-                                WHERE rh.driver_id = ?
-                                ORDER BY rh.created_at DESC
-                                LIMIT 10
-                            ");
-                            $driver_recharge_history->execute([$uid]);
-                            
-                            if($driver_recharge_history->rowCount() == 0): ?>
-                            <div class="text-center py-3 text-muted">
-                                <i class="fas fa-history fa-2x mb-2 d-block"></i>
-                                <small><?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?></small>
-                            </div>
-                            <?php else: ?>
-                            <div class="list-group list-group-flush">
-                                <?php while($drh = $driver_recharge_history->fetch()): ?>
-                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom">
-                                    <div>
-                                        <span class="badge bg-success me-2">+<?php echo $drh['amount']; ?> <?php echo $t['pts'] ?? 'pts'; ?></span>
-                                        <small class="text-muted"><?php echo fmtDate($drh['created_at']); ?></small>
-                                    </div>
-                                    <div class="text-end">
-                                        <small class="text-success fw-bold"><?php echo $drh['new_balance']; ?> <?php echo $t['pts'] ?? 'pts'; ?></small>
-                                    </div>
-                                </div>
-                                <?php endwhile; ?>
-                            </div>
-                            <?php endif;
-                        } catch (PDOException $e) { ?>
-                            <div class="text-center py-3 text-muted">
-                                <i class="fas fa-history fa-2x mb-2 d-block"></i>
-                                <small><?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?></small>
-                            </div>
-                        <?php } ?>
                     </div>
                 </div>
             </div>
@@ -2036,19 +2042,96 @@ require_once 'actions.php';
             <?php endif; ?>
 
             <!-- TABS FOR FILTERING -->
-            <?php $showHistory = isset($_GET['history']) && $_GET['history'] === '1'; ?>
+            <?php 
+            $showHistory = isset($_GET['history']) && $_GET['history'] === '1'; 
+            $showRecharge = isset($_GET['recharge']) && $_GET['recharge'] === '1';
+            $isActive = !$showHistory && !$showRecharge;
+            ?>
             <div class="tabs-wrapper">
-                <a href="index.php" class="tab-new tab-link <?php echo !$showHistory ? 'active' : ''; ?>">
+                <a href="index.php" class="tab-new tab-link <?php echo $isActive ? 'active' : ''; ?>">
                     <?php echo $role == 'driver' ? ($t['active_orders'] ?? 'Active') : ($t['recent_orders'] ?? 'الطلبات'); ?>
                 </a>
                 <a href="index.php?history=1" class="tab-new tab-link <?php echo $showHistory ? 'active' : ''; ?>">
                     <?php echo $t['order_history'] ?? 'History'; ?>
                 </a>
-                <?php if($role == 'driver' && !$showHistory): ?>
+                <?php if($role == 'driver'): ?>
+                <a href="index.php?recharge=1" class="tab-new tab-link <?php echo $showRecharge ? 'active' : ''; ?>">
+                    <i class="fas fa-history me-1"></i><?php echo $t['recharge_history'] ?? 'Recharge'; ?>
+                </a>
+                <?php endif; ?>
+                <?php if($role == 'driver' && $isActive): ?>
                 <span class="badge bg-warning text-dark pulse-badge" id="pendingBadge" style="display:none; margin: auto 0;">0</span>
                 <?php endif; ?>
             </div>
 
+            <?php if($role == 'driver' && $showRecharge): ?>
+            <!-- RECHARGE HISTORY (Separate Tab) -->
+            <div class="orders-container" id="rechargeHistoryContainer">
+                <div class="ultra-card">
+                    <div class="card-inner">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-history text-info me-2"></i><?php echo $t['recharge_history'] ?? 'Recharge History'; ?></h5>
+                        </div>
+                        <?php
+                        try {
+                            $driver_recharge_history = $conn->prepare("
+                                SELECT rh.*, a.full_name as admin_name, a.username as admin_username
+                                FROM recharge_history rh
+                                LEFT JOIN users1 a ON rh.admin_id = a.id
+                                WHERE rh.driver_id = ?
+                                ORDER BY rh.created_at DESC
+                                LIMIT 50
+                            ");
+                            $driver_recharge_history->execute([$uid]);
+                            
+                            if($driver_recharge_history->rowCount() == 0): ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-history fa-3x mb-3 d-block"></i>
+                                <h5 class="text-muted"><?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?></h5>
+                                <p class="text-muted small mb-0"><?php echo $t['recharge_note'] ?? 'Contact support to add credits to your account'; ?></p>
+                            </div>
+                            <?php else: ?>
+                            <div class="list-group list-group-flush">
+                                <?php while($drh = $driver_recharge_history->fetch()): ?>
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom py-3">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <span class="badge bg-success fs-6">+<?php echo $drh['amount']; ?> <?php echo $t['pts'] ?? 'pts'; ?></span>
+                                            <?php if($drh['recharge_type'] == 'bulk'): ?>
+                                            <span class="badge bg-info"><?php echo $t['bulk'] ?? 'Bulk'; ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-clock me-1"></i><?php echo fmtDate($drh['created_at']); ?>
+                                        </small>
+                                        <?php if($drh['admin_name'] || $drh['admin_username']): ?>
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-user-shield me-1"></i><?php echo $t['admin'] ?? 'Admin'; ?>: <?php echo e($drh['admin_name'] ?? $drh['admin_username']); ?>
+                                        </small>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="text-muted small mb-1">
+                                            <?php echo $t['previous_balance'] ?? 'Before'; ?>: <?php echo $drh['previous_balance']; ?> <?php echo $t['pts'] ?? 'pts'; ?>
+                                        </div>
+                                        <div class="text-success fw-bold">
+                                            <?php echo $t['new_balance'] ?? 'After'; ?>: <?php echo $drh['new_balance']; ?> <?php echo $t['pts'] ?? 'pts'; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endwhile; ?>
+                            </div>
+                            <?php endif;
+                        } catch (PDOException $e) { ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-history fa-3x mb-3 d-block"></i>
+                                <h5 class="text-muted"><?php echo $t['no_recharge_history'] ?? 'No recharge history yet.'; ?></h5>
+                            </div>
+                        <?php } ?>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
             <!-- ORDERS AS ULTRA CARDS -->
             <div class="orders-container" id="ordersContainer">
                 <?php
@@ -2248,7 +2331,7 @@ require_once 'actions.php';
                                         <i class="fas fa-phone"></i>
                                     </a>
                                     <a href="https://wa.me/<?php echo e($country_code . $row['client_phone']); ?>" target="_blank" class="btn btn-sm rounded-circle" style="background-color: #25D366; color: white;" title="WhatsApp">
-                                        <i class="fab fa-whatsapp"></i>
+                                        <i class="fa-brands fa-whatsapp"></i>
                                     </a>
                                 </div>
                                 <?php endif; ?>
@@ -2428,6 +2511,7 @@ require_once 'actions.php';
                 </div>
                 <?php endwhile; endif; ?>
             </div>
+            <?php endif; ?>
 
             <!-- GLASS NAVIGATION BAR -->
             <?php if($role == 'driver'): ?>
@@ -2528,7 +2612,7 @@ require_once 'actions.php';
                                     <i class="fas fa-phone me-1"></i> <?php echo $t['call_driver'] ?? 'Call'; ?>
                                 </a>
                                 <a href="#" id="tracking-whatsapp-btn" class="btn btn-sm flex-fill rounded-pill" style="background-color: #25D366; color: white;">
-                                    <i class="fab fa-whatsapp me-1"></i> WhatsApp
+                                    <i class="fa-brands fa-whatsapp me-1"></i> WhatsApp
                                 </a>
                             </div>
                         </div>
@@ -2593,7 +2677,7 @@ require_once 'actions.php';
                                     <i class="fas fa-phone me-2"></i><?php echo $t['call_driver'] ?? 'Call Driver'; ?>
                                 </a>
                                 <a href="#" id="driverModalWhatsappBtn" class="btn btn-lg rounded-pill" style="background-color: #25D366; color: white;">
-                                    <i class="fab fa-whatsapp me-2"></i><?php echo $t['message_driver'] ?? 'WhatsApp'; ?>
+                                    <i class="fa-brands fa-whatsapp me-2"></i><?php echo $t['message_driver'] ?? 'WhatsApp'; ?>
                                 </a>
                             </div>
                             
