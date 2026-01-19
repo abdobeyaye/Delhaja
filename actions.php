@@ -47,9 +47,24 @@ if (isset($_SESSION['user'])) {
             $phone_verified = 1;
         }
 
+        // Handle working zones for drivers
+        $working_zones_sql = '';
+        $working_zones_params = [];
+        if ($u['role'] == 'driver') {
+            $working_zones = isset($_POST['working_zones']) ? $_POST['working_zones'] : [];
+            // Sanitize zone values
+            $valid_zones = array_keys($zones);
+            $working_zones = array_filter($working_zones, function($zone) use ($valid_zones) {
+                return in_array($zone, $valid_zones);
+            });
+            $working_zones_str = !empty($working_zones) ? implode(',', $working_zones) : null;
+            $working_zones_sql = ', working_zones=?';
+            $working_zones_params[] = $working_zones_str;
+        }
+
         // Update profile info
-        $sql = "UPDATE users1 SET full_name=?, phone=?, phone_verified=?, email=?, address=?" . $avatar_sql . " WHERE id=?";
-        $params = array_merge([$full_name, $phone, $phone_verified, $email, $address], $avatar_params, [$uid]);
+        $sql = "UPDATE users1 SET full_name=?, phone=?, phone_verified=?, email=?, address=?" . $avatar_sql . $working_zones_sql . " WHERE id=?";
+        $params = array_merge([$full_name, $phone, $phone_verified, $email, $address], $avatar_params, $working_zones_params, [$uid]);
         $conn->prepare($sql)->execute($params);
 
         // Update password if provided
@@ -96,7 +111,11 @@ if (isset($_SESSION['user'])) {
         // Refresh session
         $_SESSION['user']['is_online'] = $new_status;
 
-        setFlash('success', $new_status ? ($t['you_are_online'] ?? 'You are now online') : ($t['you_are_offline'] ?? 'You are now offline'));
+        if ($new_status) {
+            setFlash('success', $t['you_are_online'] ?? 'You are now online and will receive new orders');
+        } else {
+            setFlash('warning', $t['you_are_offline_no_orders'] ?? 'You are now offline and will not receive new orders');
+        }
         header("Location: index.php");
         exit();
     }

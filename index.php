@@ -364,6 +364,34 @@ require_once 'actions.php';
                                     </div>
                                 </div>
 
+                                <?php if($role == 'driver'): ?>
+                                <!-- Working Zones Section (Driver Only) -->
+                                <div class="section-divider">
+                                    <i class="fas fa-map-marked-alt me-2"></i> <?php echo $t['working_zones'] ?? 'Working Zones'; ?>
+                                </div>
+
+                                <div class="alert alert-info border-0 rounded-3 mb-3">
+                                    <small><i class="fas fa-info-circle me-1"></i> <?php echo $t['working_zones_note'] ?? 'Select the zones where you want to receive orders. Leave empty to receive orders from all zones.'; ?></small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary"><?php echo $t['select_working_zones'] ?? 'Select Working Zones'; ?></label>
+                                    <?php
+                                    $userWorkingZones = !empty($u['working_zones']) ? explode(',', $u['working_zones']) : [];
+                                    ?>
+                                    <div class="working-zones-grid">
+                                        <?php foreach($zones as $key => $name): ?>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="working_zones[]" value="<?php echo e($key); ?>" id="zone_<?php echo e($key); ?>" <?php echo in_array($key, $userWorkingZones) ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="zone_<?php echo e($key); ?>">
+                                                <?php echo ($lang == 'ar') ? $name : $key; ?>
+                                            </label>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+
                                 <!-- Security Section -->
                                 <div class="section-divider">
                                     <i class="fas fa-shield-alt me-2"></i> <?php echo $t['security']; ?>
@@ -1437,6 +1465,33 @@ require_once 'actions.php';
                                     </div>
                                 </div>
                             </div>
+                            <?php
+                            // Show working zones if set
+                            $driverWorkingZones = !empty($u['working_zones']) ? explode(',', $u['working_zones']) : [];
+                            if (!empty($driverWorkingZones)):
+                            ?>
+                            <div class="col-12">
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <small class="text-muted"><i class="fas fa-map-marked-alt me-1"></i><?php echo $t['working_zones'] ?? 'Working Zones'; ?>:</small>
+                                    <?php foreach($driverWorkingZones as $zone): ?>
+                                    <span class="badge bg-primary"><?php echo ($lang == 'ar' && isset($zones[$zone])) ? e($zones[$zone]) : e($zone); ?></span>
+                                    <?php endforeach; ?>
+                                    <a href="?settings=1" class="btn btn-sm btn-outline-secondary" style="border-radius: 20px; padding: 2px 10px;">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <?php else: ?>
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0 py-2 px-3" style="border-radius: 12px; border: none;">
+                                    <small>
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        <?php echo $t['no_working_zones_tip'] ?? 'Tip: Set your working zones in settings to receive orders only from your preferred areas.'; ?>
+                                        <a href="?settings=1" class="ms-2 fw-bold"><?php echo $t['settings'] ?? 'Settings'; ?></a>
+                                    </small>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -1447,6 +1502,22 @@ require_once 'actions.php';
                 <input type="checkbox" id="onlineSwitch" name="is_online" value="1" <?php echo ($u['is_online'] ?? 0) ? 'checked' : ''; ?>>
                 <input type="hidden" name="toggle_online" value="1">
             </form>
+
+            <?php if(!($u['is_online'] ?? 0)): ?>
+            <!-- Offline Warning Banner -->
+            <div class="orders-container mb-3">
+                <div class="alert alert-warning mb-0 py-3 px-4 d-flex align-items-center justify-content-between" style="border-radius: 16px; border: none;">
+                    <div>
+                        <i class="fas fa-power-off me-2"></i>
+                        <strong><?php echo $t['offline_warning'] ?? 'You are offline'; ?></strong>
+                        <p class="mb-0 small"><?php echo $t['offline_warning_desc'] ?? 'Go online to receive new orders'; ?></p>
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm" onclick="document.getElementById('onlineSwitch').checked = true; document.getElementById('onlineToggleForm').submit();">
+                        <i class="fas fa-play me-1"></i><?php echo $t['go_online'] ?? 'Go Online'; ?>
+                    </button>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- DRIVER RECHARGE DASHBOARD -->
             <div class="orders-container mb-3">
@@ -1609,9 +1680,15 @@ require_once 'actions.php';
             <?php endif; ?>
 
             <!-- TABS FOR FILTERING -->
+            <?php $showHistory = isset($_GET['history']) && $_GET['history'] === '1'; ?>
             <div class="tabs-wrapper">
-                <div class="tab-new active"><?php echo $t['recent_orders'] ?? 'الطلبات'; ?></div>
-                <?php if($role == 'driver'): ?>
+                <a href="index.php" class="tab-new tab-link <?php echo !$showHistory ? 'active' : ''; ?>">
+                    <?php echo $role == 'driver' ? ($t['active_orders'] ?? 'Active') : ($t['recent_orders'] ?? 'الطلبات'); ?>
+                </a>
+                <a href="index.php?history=1" class="tab-new tab-link <?php echo $showHistory ? 'active' : ''; ?>">
+                    <?php echo $t['order_history'] ?? 'History'; ?>
+                </a>
+                <?php if($role == 'driver' && !$showHistory): ?>
                 <span class="badge bg-warning text-dark pulse-badge" id="pendingBadge" style="display:none; margin: auto 0;">0</span>
                 <?php endif; ?>
             </div>
@@ -1621,22 +1698,75 @@ require_once 'actions.php';
                 <?php
                 // Zone-based order filtering (no GPS)
                 if($role == 'driver') {
-                    // Show driver's active orders AND all pending orders
-                    $sql = "SELECT * FROM orders1
-                            WHERE (driver_id = ? AND status IN ('accepted', 'picked_up'))
-                            OR status = 'pending'
-                            ORDER BY CASE WHEN driver_id = ? THEN 0 ELSE 1 END, id DESC
-                            LIMIT 50";
-                    $stmt = $conn->prepare($sql);
-                    $stmt->execute([$uid, $uid]);
+                    if ($showHistory) {
+                        // Show driver's delivered and cancelled order history
+                        $sql = "SELECT * FROM orders1
+                                WHERE driver_id = ? AND status IN ('delivered', 'cancelled')
+                                ORDER BY id DESC
+                                LIMIT 50";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->execute([$uid]);
+                    } else {
+                        // Driver sees their active orders always
+                        // Only show pending orders if driver is ONLINE
+                        $isOnline = $u['is_online'] ?? 0;
+                        $driverWorkingZones = !empty($u['working_zones']) ? explode(',', $u['working_zones']) : [];
+                        
+                        // Validate working zones against valid zone list
+                        $validZones = array_keys($zones);
+                        $driverWorkingZones = array_filter($driverWorkingZones, function($zone) use ($validZones) {
+                            return in_array($zone, $validZones);
+                        });
+                        
+                        if ($isOnline && !empty($driverWorkingZones)) {
+                            // Online driver with working zones - show pending orders in their zones
+                            $zonePlaceholders = implode(',', array_fill(0, count($driverWorkingZones), '?'));
+                            $sql = "SELECT * FROM orders1
+                                    WHERE (driver_id = ? AND status IN ('accepted', 'picked_up'))
+                                    OR (status = 'pending' AND (pickup_zone IN ($zonePlaceholders) OR dropoff_zone IN ($zonePlaceholders)))
+                                    ORDER BY CASE WHEN driver_id = ? THEN 0 ELSE 1 END, id DESC
+                                    LIMIT 50";
+                            $stmt = $conn->prepare($sql);
+                            $params = array_merge([$uid], $driverWorkingZones, $driverWorkingZones, [$uid]);
+                            $stmt->execute($params);
+                        } elseif ($isOnline) {
+                            // Online driver without zones - show all pending orders
+                            $sql = "SELECT * FROM orders1
+                                    WHERE (driver_id = ? AND status IN ('accepted', 'picked_up'))
+                                    OR status = 'pending'
+                                    ORDER BY CASE WHEN driver_id = ? THEN 0 ELSE 1 END, id DESC
+                                    LIMIT 50";
+                            $stmt = $conn->prepare($sql);
+                            $stmt->execute([$uid, $uid]);
+                        } else {
+                            // Offline driver - only show their active orders (no pending)
+                            $sql = "SELECT * FROM orders1
+                                    WHERE driver_id = ? AND status IN ('accepted', 'picked_up')
+                                    ORDER BY id DESC
+                                    LIMIT 50";
+                            $stmt = $conn->prepare($sql);
+                            $stmt->execute([$uid]);
+                        }
+                    }
                     $res = $stmt;
                 } elseif($role == 'customer') {
-                    $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified,
-                            (SELECT COUNT(*) FROM ratings r WHERE r.order_id = o.id AND r.rater_id = ?) as has_rated
-                            FROM orders1 o
-                            LEFT JOIN users1 d ON o.driver_id = d.id
-                            WHERE o.customer_name = ? OR o.client_id = ?
-                            ORDER BY o.id DESC LIMIT 50";
+                    if ($showHistory) {
+                        // Show customer's delivered and cancelled order history
+                        $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified,
+                                (SELECT COUNT(*) FROM ratings r WHERE r.order_id = o.id AND r.rater_id = ?) as has_rated
+                                FROM orders1 o
+                                LEFT JOIN users1 d ON o.driver_id = d.id
+                                WHERE (o.customer_name = ? OR o.client_id = ?) AND o.status IN ('delivered', 'cancelled')
+                                ORDER BY o.id DESC LIMIT 50";
+                    } else {
+                        // Show customer's active orders
+                        $sql = "SELECT o.*, d.full_name as driver_name, d.phone as driver_phone, d.rating as driver_rating, d.is_verified as driver_verified,
+                                (SELECT COUNT(*) FROM ratings r WHERE r.order_id = o.id AND r.rater_id = ?) as has_rated
+                                FROM orders1 o
+                                LEFT JOIN users1 d ON o.driver_id = d.id
+                                WHERE (o.customer_name = ? OR o.client_id = ?) AND o.status IN ('pending', 'accepted', 'picked_up')
+                                ORDER BY o.id DESC LIMIT 50";
+                    }
                     $stmt = $conn->prepare($sql);
                     $stmt->execute([$uid, $u['username'], $uid]);
                     $res = $stmt;
@@ -1648,10 +1778,10 @@ require_once 'actions.php';
                 if($res->rowCount() == 0): ?>
                 <div class="ultra-card">
                     <div class="card-inner text-center py-5">
-                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted"><?php echo $t['no_orders']; ?></h5>
+                        <i class="fas fa-<?php echo $showHistory ? 'clock-rotate-left' : 'box-open'; ?> fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted"><?php echo $showHistory ? ($t['no_history'] ?? 'No order history') : $t['no_orders']; ?></h5>
                         <p class="text-muted small mb-0">
-                            <?php echo $t['check_back_later']; ?>
+                            <?php echo $showHistory ? ($t['history_empty'] ?? 'Completed orders will appear here') : $t['check_back_later']; ?>
                         </p>
                     </div>
                 </div>
@@ -1669,10 +1799,18 @@ require_once 'actions.php';
                             <div class="price-tag">
                                 #<?php echo $row['id']; ?>
                             </div>
+                            <?php if($role == 'customer' && $st != 'delivered' && $st != 'cancelled' && !empty($row['delivery_code'])): ?>
+                            <!-- PIN Code Badge for Customer in Header -->
+                            <div class="pin-badge">
+                                <i class="fas fa-key"></i>
+                                <?php echo $row['delivery_code']; ?>
+                            </div>
+                            <?php else: ?>
                             <div class="time-tag blue">
                                 <i class="fa-regular fa-clock"></i>
                                 <?php echo fmtDate($row['created_at']); ?>
                             </div>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Meta Tags -->
