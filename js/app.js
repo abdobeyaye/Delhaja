@@ -339,10 +339,11 @@ function _showOrderTracking(order, translations) {
 
     // Set contact buttons (phone call and WhatsApp)
     if (order.driver_phone) {
-        document.getElementById('tracking-call-btn').href = 'tel:+222' + order.driver_phone;
+        const countryCode = (typeof AppConfig !== 'undefined' && AppConfig.countryCode) ? AppConfig.countryCode : '222';
+        document.getElementById('tracking-call-btn').href = 'tel:+' + countryCode + order.driver_phone;
         const whatsappBtn = document.getElementById('tracking-whatsapp-btn');
         if (whatsappBtn) {
-            whatsappBtn.href = 'https://wa.me/222' + order.driver_phone;
+            whatsappBtn.href = 'https://wa.me/' + countryCode + order.driver_phone;
         }
     }
 

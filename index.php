@@ -2488,7 +2488,8 @@ const AppTranslations = {
 const AppConfig = {
     lang: '<?php echo $lang; ?>',
     userRole: '<?php echo isset($_SESSION['user']) ? $role : ''; ?>',
-    isLoggedIn: <?php echo isset($_SESSION['user']) ? 'true' : 'false'; ?>
+    isLoggedIn: <?php echo isset($_SESSION['user']) ? 'true' : 'false'; ?>,
+    countryCode: '<?php echo $country_code; ?>'
 };
 
 // Zone price matrix for client-side calculation
@@ -2503,12 +2504,42 @@ function calculateDeliveryPrice() {
 
     if (!priceContainer || !priceDisplay) return;
 
+    // Pricing constants for fallback when no routes found
+    const FALLBACK_MIN_PRICE = 100;
+    const FALLBACK_MAX_PRICE = 200;
+    const DEFAULT_PRICE = 150;
+
+    // Helper function to find price range from routes
+    function getPriceRange(routes, filterFn) {
+        let minPrice = Infinity;
+        let maxPrice = 0;
+        for (const route of routes) {
+            if (filterFn(route)) {
+                minPrice = Math.min(minPrice, route.price);
+                maxPrice = Math.max(maxPrice, route.price);
+            }
+        }
+        if (minPrice === Infinity) {
+            minPrice = FALLBACK_MIN_PRICE;
+            maxPrice = FALLBACK_MAX_PRICE;
+        }
+        return { minPrice, maxPrice };
+    }
+
+    // Helper function to format price display
+    function formatPriceRange(minPrice, maxPrice) {
+        if (minPrice === maxPrice) {
+            return minPrice + ' ' + AppTranslations.mru;
+        } else {
+            return minPrice + ' - ' + maxPrice + ' ' + AppTranslations.mru;
+        }
+    }
+
     // Show price immediately when dropoff zone is selected (regardless of pickup)
     if (dropoffZone) {
-        let price = 150; // default
-        
         if (pickupZone) {
             // Both zones selected - find exact price
+            let price = DEFAULT_PRICE;
             for (const route of zonePrices) {
                 if (route.from === pickupZone && route.to === dropoffZone) {
                     price = route.price;
@@ -2518,44 +2549,14 @@ function calculateDeliveryPrice() {
             priceDisplay.textContent = price + ' ' + AppTranslations.mru;
         } else {
             // Only dropoff selected - show price range for this destination
-            let minPrice = Infinity;
-            let maxPrice = 0;
-            for (const route of zonePrices) {
-                if (route.to === dropoffZone) {
-                    minPrice = Math.min(minPrice, route.price);
-                    maxPrice = Math.max(maxPrice, route.price);
-                }
-            }
-            if (minPrice === Infinity) {
-                minPrice = 100;
-                maxPrice = 200;
-            }
-            if (minPrice === maxPrice) {
-                priceDisplay.textContent = minPrice + ' ' + AppTranslations.mru;
-            } else {
-                priceDisplay.textContent = minPrice + ' - ' + maxPrice + ' ' + AppTranslations.mru;
-            }
+            const { minPrice, maxPrice } = getPriceRange(zonePrices, route => route.to === dropoffZone);
+            priceDisplay.textContent = formatPriceRange(minPrice, maxPrice);
         }
         priceContainer.style.display = 'block';
     } else if (pickupZone) {
         // Only pickup zone selected - show price range from this origin
-        let minPrice = Infinity;
-        let maxPrice = 0;
-        for (const route of zonePrices) {
-            if (route.from === pickupZone) {
-                minPrice = Math.min(minPrice, route.price);
-                maxPrice = Math.max(maxPrice, route.price);
-            }
-        }
-        if (minPrice === Infinity) {
-            minPrice = 100;
-            maxPrice = 200;
-        }
-        if (minPrice === maxPrice) {
-            priceDisplay.textContent = minPrice + ' ' + AppTranslations.mru;
-        } else {
-            priceDisplay.textContent = minPrice + ' - ' + maxPrice + ' ' + AppTranslations.mru;
-        }
+        const { minPrice, maxPrice } = getPriceRange(zonePrices, route => route.from === pickupZone);
+        priceDisplay.textContent = formatPriceRange(minPrice, maxPrice);
         priceContainer.style.display = 'block';
     } else {
         // No zone selected - hide price
@@ -2569,10 +2570,15 @@ window.showOrderTracking = function(order) {
 
 // Show driver details popup modal
 window.showDriverDetails = function(driver) {
-    // Set avatar
+    // Set avatar (escape src attribute to prevent XSS)
     const avatarEl = document.getElementById('driverModalAvatar');
     if (driver.avatar) {
-        avatarEl.innerHTML = '<img src="' + driver.avatar + '" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">';
+        const img = document.createElement('img');
+        img.src = driver.avatar;
+        img.alt = '';
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
+        avatarEl.innerHTML = '';
+        avatarEl.appendChild(img);
     } else {
         avatarEl.innerHTML = '<i class="fas fa-motorcycle"></i>';
     }
